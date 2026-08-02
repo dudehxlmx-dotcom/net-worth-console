@@ -1,0 +1,3023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Net Worth Console</title>
+
+<!-- PWA: manifest + theme color (Android/Chrome install path) -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A0D10">
+
+<!-- PWA: iOS Safari ignores the manifest for icon/name/status-bar -- needs these separately -->
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Net Worth">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* ---- Color tokens ---- */
+    --bg-void:        #0A0D10;
+    --bg-panel:        #12161B;
+    --bg-panel-raised: #1A2029;
+    --bg-panel-hover:  #1F2630;
+    --border-hairline: #232B35;
+    --border-glow:     #2E3A47;
+
+    --ink-primary: #E9EDF1;
+    --ink-muted:   #7C8896;
+    --ink-faint:   #4D5762;
+
+    --accent:       #4FD1E8;
+    --accent-dim:   #2A6B78;
+    --accent-glow:  rgba(79, 209, 232, 0.16);
+
+    --signal-green:  #3DDC84;
+    --signal-green-dim: rgba(61, 220, 132, 0.14);
+    --signal-amber:  #F5A623;
+    --signal-amber-dim: rgba(245, 166, 35, 0.14);
+    --signal-red:    #FF5D5D;
+    --signal-red-dim: rgba(255, 93, 93, 0.14);
+    --signal-blue:   #5B8DEF;
+    --signal-blue-dim: rgba(91, 141, 239, 0.14);
+    --asset-gold:    #D4A12A;
+    --asset-gold-dim: rgba(212, 161, 42, 0.14);
+
+    /* ---- Type tokens ---- */
+    --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    --font-body:    'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+    /* ---- Layout tokens ---- */
+    --sidebar-w: 232px;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg-void);
+    background-image:
+      radial-gradient(ellipse 1200px 600px at 15% -10%, rgba(79,209,232,0.05), transparent 60%),
+      radial-gradient(ellipse 900px 500px at 100% 0%, rgba(91,141,239,0.04), transparent 55%);
+    color: var(--ink-primary);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; }
+
+  ::selection { background: var(--accent-glow); color: var(--ink-primary); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-glow); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ink-faint); }
+
+  /* Focus visibility */
+  a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  /* ============== APP SHELL ============== */
+  .app {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ---- Sidebar ---- */
+  .sidebar {
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border-hairline);
+    display: flex;
+    flex-direction: column;
+    padding: 22px 14px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 10px 22px;
+  }
+  .brand-mark {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--signal-blue));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-weight: 700; font-size: 13px;
+    color: #06181C;
+    flex-shrink: 0;
+  }
+  .brand-text { display: flex; flex-direction: column; line-height: 1.25; }
+  .brand-title { font-family: var(--font-display); font-weight: 600; font-size: 14.5px; letter-spacing: -0.01em; }
+  .brand-sub { font-family: var(--font-mono); font-size: 10px; color: var(--ink-faint); letter-spacing: 0.04em; text-transform: uppercase; }
+
+  .nav { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 11px;
+    border-radius: var(--radius-sm);
+    color: var(--ink-muted);
+    font-size: 13px; font-weight: 500;
+    background: transparent;
+    border: none; width: 100%; text-align: left;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .nav-item:hover { background: var(--bg-panel-hover); color: var(--ink-primary); }
+  .nav-item.active {
+    background: var(--accent-glow);
+    color: var(--accent);
+  }
+  .nav-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.9; }
+  .nav-item.active .nav-icon { opacity: 1; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-hairline);
+  }
+  .sync-status {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 11px;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+  }
+  .sync-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--signal-green);
+    box-shadow: 0 0 0 3px var(--signal-green-dim);
+    flex-shrink: 0;
+  }
+  .reset-link {
+    display: block;
+    padding: 8px 11px;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    background: none; border: none; text-align: left; width: 100%;
+    border-radius: var(--radius-sm);
+  }
+  .reset-link:hover { color: var(--signal-red); background: var(--bg-panel-hover); }
+
+  /* ---- Main ---- */
+  .main {
+    flex: 1;
+    min-width: 0;
+    padding: 28px 36px 60px;
+    max-width: 1280px;
+  }
+
+  .topbar {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .page-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+  }
+  .page-meta {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+  }
+
+  /* ---- Summary strip ---- */
+  .summary-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat-tile {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .stat-sub {
+    font-size: 11.5px;
+    color: var(--ink-muted);
+    margin-top: 5px;
+  }
+  .stat-tile.accent-cyan .stat-value { color: var(--accent); }
+  .stat-tile.accent-amber .stat-value { color: var(--signal-amber); }
+  .stat-tile.accent-green .stat-value { color: var(--signal-green); }
+
+  /* ============== SHARED COMPONENTS ============== */
+  .panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-lg);
+  }
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-hairline);
+  }
+  .panel-title {
+    font-family: var(--font-display);
+    font-weight: 600; font-size: 14.5px;
+  }
+  .panel-body { padding: 18px 20px; }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+    gap: 12px;
+  }
+
+  .account-card {
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-md);
+    padding: 16px 17px;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .account-card:hover { border-color: var(--border-glow); transform: translateY(-1px); }
+
+  .card-top-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .card-bank-name { font-family: var(--font-display); font-weight: 600; font-size: 14px; }
+  .card-type { font-size: 10.5px; color: var(--ink-faint); margin-top: 2px; }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px 3px 7px;
+    border-radius: 100px;
+    font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .status-pill.status-paid { background: var(--signal-green-dim); color: var(--signal-green); }
+  .status-pill.status-paid .dot { background: var(--signal-green); }
+  .status-pill.status-pending { background: var(--signal-amber-dim); color: var(--signal-amber); }
+  .status-pill.status-pending .dot { background: var(--signal-amber); }
+  .status-pill.status-overdue { background: var(--signal-red-dim); color: var(--signal-red); }
+  .status-pill.status-overdue .dot { background: var(--signal-red); animation: pulse-dot 1.6s ease-in-out infinite; }
+  .status-pill.status-unknown { background: rgba(124,136,150,0.14); color: var(--ink-muted); }
+  .status-pill.status-unknown .dot { background: var(--ink-muted); }
+  .status-pill.status-notbilled { background: var(--signal-blue-dim); color: var(--signal-blue); }
+  .status-pill.status-notbilled .dot { background: var(--signal-blue); }
+
+  @keyframes pulse-dot {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,93,93,0.5); }
+    50% { box-shadow: 0 0 0 4px rgba(255,93,93,0); }
+  }
+
+  .card-balance-row { margin-bottom: 10px; }
+  .card-balance-label { font-size: 10.5px; color: var(--ink-faint); margin-bottom: 2px; }
+  .card-balance-value { font-family: var(--font-mono); font-size: 19px; font-weight: 600; }
+
+  .card-meta-row {
+    display: flex; justify-content: space-between;
+    font-size: 11.5px; color: var(--ink-muted);
+    padding-top: 10px;
+    border-top: 1px solid var(--border-hairline);
+  }
+  .card-meta-row span:last-child { font-family: var(--font-mono); color: var(--ink-primary); }
+
+  /* ---- Signal bar (loan payoff progress) ---- */
+  .signal-bar {
+    display: flex; gap: 2px;
+    height: 14px;
+    margin: 10px 0 8px;
+  }
+  .signal-seg {
+    flex: 1;
+    border-radius: 1px;
+    background: var(--border-hairline);
+  }
+  .signal-seg.filled { background: var(--accent); }
+  .signal-bar-label {
+    display: flex; justify-content: space-between;
+    font-size: 10.5px; color: var(--ink-faint);
+    font-family: var(--font-mono);
+  }
+
+  /* ---- Loan card (richer than account card) ---- */
+  .loan-card {
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-md);
+    padding: 17px 18px;
+  }
+  .loan-card-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 4px;
+  }
+  .loan-bank-tag {
+    font-family: var(--font-mono);
+    font-size: 10px; font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .loan-plan-desc { font-size: 13px; font-weight: 500; margin-top: 4px; margin-bottom: 12px; color: var(--ink-primary); line-height: 1.4; }
+
+  .loan-fig-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px 14px;
+    margin-bottom: 12px;
+  }
+  .loan-fig-label { font-size: 10px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
+  .loan-fig-value { font-family: var(--font-mono); font-size: 13.5px; font-weight: 600; }
+  .loan-fig-value.muted { color: var(--ink-faint); font-weight: 400; font-style: italic; font-size: 12px; }
+
+  .rate-tags { display: flex; gap: 6px; margin-top: 2px; }
+  .rate-tag {
+    font-family: var(--font-mono); font-size: 10.5px;
+    padding: 3px 8px; border-radius: 5px;
+    background: var(--bg-panel); border: 1px solid var(--border-hairline);
+    color: var(--ink-muted);
+  }
+
+  /* ---- Due date list ---- */
+  .due-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 16px;
+    border-radius: var(--radius-md);
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--border-hairline);
+    margin-bottom: 8px;
+  }
+  .due-row-led {
+    width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+  }
+  .due-row-led.led-red { background: var(--signal-red); box-shadow: 0 0 0 3px var(--signal-red-dim); animation: pulse-dot 1.6s ease-in-out infinite; }
+  .due-row-led.led-amber { background: var(--signal-amber); box-shadow: 0 0 0 3px var(--signal-amber-dim); }
+  .due-row-led.led-yellow { background: #E8D44D; box-shadow: 0 0 0 3px rgba(232,212,77,0.14); }
+  .due-row-led.led-green { background: var(--signal-green); box-shadow: 0 0 0 3px var(--signal-green-dim); }
+  .due-row-led.led-blue { background: var(--signal-blue); box-shadow: 0 0 0 3px var(--signal-blue-dim); }
+  .due-row-led.led-gray { background: var(--ink-faint); box-shadow: 0 0 0 3px rgba(124,136,150,0.1); }
+
+  .due-row-bank { flex: 1; min-width: 0; }
+  .due-row-bank-name { font-weight: 600; font-size: 13.5px; }
+  .due-row-bank-date { font-size: 11.5px; color: var(--ink-muted); margin-top: 1px; }
+  .due-row-countdown {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    min-width: 76px; text-align: right;
+  }
+  .due-row-amounts { text-align: right; min-width: 110px; }
+  .due-row-balance { font-family: var(--font-mono); font-size: 13.5px; font-weight: 600; }
+  .due-row-min { font-size: 10.5px; color: var(--ink-faint); }
+
+  /* ---- Buttons ---- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 600;
+    border: 1px solid var(--border-hairline);
+    background: var(--bg-panel-raised);
+    color: var(--ink-primary);
+    transition: all 0.15s ease;
+  }
+  .btn:hover { border-color: var(--border-glow); background: var(--bg-panel-hover); }
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #06181C;
+  }
+  .btn-primary:hover { background: #65DBEE; border-color: #65DBEE; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-muted); }
+  .btn-ghost:hover { color: var(--ink-primary); background: var(--bg-panel-hover); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-status {
+    padding: 6px 10px; font-size: 11.5px; border-radius: 100px;
+  }
+
+  /* ---- Toggle / select pill ---- */
+  select.status-select {
+    appearance: none;
+    -webkit-appearance: none;
+    font-family: inherit; font-size: 11px; font-weight: 600;
+    padding: 5px 26px 5px 10px;
+    border-radius: 100px;
+    border: 1px solid var(--border-hairline);
+    background-color: var(--bg-panel);
+    color: var(--ink-primary);
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237C8896' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 7px center;
+    background-size: 12px;
+  }
+
+  /* ---- Empty / loading states ---- */
+  .empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--ink-faint);
+  }
+  .empty-state-icon { font-size: 26px; margin-bottom: 10px; opacity: 0.6; }
+  .empty-state-text { font-size: 13px; }
+
+  .loading-spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border-hairline);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---- Tab fade ---- */
+  .tab-fade { animation: tabFade 0.22s ease; }
+  @keyframes tabFade { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ---- Upload zone ---- */
+  .upload-zone {
+    border: 1.5px dashed var(--border-glow);
+    border-radius: var(--radius-lg);
+    padding: 44px 24px;
+    text-align: center;
+    background: var(--bg-panel-raised);
+    transition: border-color 0.15s ease, background 0.15s ease;
+    cursor: pointer;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+  }
+  .upload-zone-icon { font-size: 30px; margin-bottom: 10px; }
+  .upload-zone-title { font-family: var(--font-display); font-weight: 600; font-size: 15px; margin-bottom: 5px; }
+  .upload-zone-sub { font-size: 12px; color: var(--ink-muted); }
+
+  /* ---- Modal ---- */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(6, 9, 12, 0.72);
+    backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 24px;
+  }
+  .modal-box {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-glow);
+    border-radius: var(--radius-lg);
+    max-width: 560px; width: 100%;
+    max-height: 84vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+  }
+  .modal-head {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border-hairline);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal-title { font-family: var(--font-display); font-weight: 600; font-size: 15.5px; }
+  .modal-body { padding: 20px 22px; overflow-y: auto; }
+  .modal-foot {
+    padding: 16px 22px;
+    border-top: 1px solid var(--border-hairline);
+    display: flex; justify-content: flex-end; gap: 10px;
+  }
+  .close-x { background: none; border: none; color: var(--ink-faint); font-size: 18px; line-height: 1; padding: 4px; }
+  .close-x:hover { color: var(--ink-primary); }
+
+  .field-row { margin-bottom: 14px; }
+  .field-label { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 5px; font-weight: 600; }
+  .field-input {
+    width: 100%;
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-sm);
+    padding: 9px 11px;
+    color: var(--ink-primary);
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .field-input:focus { outline: none; border-color: var(--accent); }
+  .field-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .merge-note {
+    font-size: 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-glow);
+    color: var(--accent);
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+
+  /* ---- Toast ---- */
+  #toast-container {
+    position: fixed; bottom: 22px; right: 22px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 200;
+  }
+  .toast {
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--border-glow);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    font-size: 12.5px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    display: flex; align-items: center; gap: 9px;
+    animation: toastIn 0.25s ease;
+    max-width: 320px;
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+  .toast.success { border-left: 3px solid var(--signal-green); }
+  .toast.error { border-left: 3px solid var(--signal-red); }
+  .toast.info { border-left: 3px solid var(--accent); }
+
+  /* ---- Table (instalment plan detail / underlying notes) ---- */
+  .legend-row { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11px; color: var(--ink-faint); padding: 14px 20px 0; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  /* ---- Net worth banner ---- */
+  .networth-banner {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-lg);
+    padding: 18px 22px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+  .networth-main { flex-shrink: 0; }
+  .networth-label { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-bottom: 6px; }
+  .networth-value { font-family: var(--font-mono); font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
+  .networth-value.negative { color: var(--ink-primary); }
+  .networth-value.positive { color: var(--signal-green); }
+  .networth-bar-wrap { flex: 1; min-width: 200px; }
+  .networth-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--bg-panel-raised); margin-bottom: 7px; }
+  .networth-bar-seg.assets-seg { background: linear-gradient(90deg, var(--asset-gold), var(--signal-green)); }
+  .networth-bar-seg.liab-seg { background: linear-gradient(90deg, var(--accent-dim), var(--accent)); }
+  .networth-bar-legend { display: flex; gap: 18px; font-size: 11.5px; }
+  .networth-bar-legend span { display: flex; align-items: center; gap: 6px; color: var(--ink-muted); }
+  .networth-bar-legend .sw { width: 8px; height: 8px; border-radius: 2px; }
+  .networth-bar-legend strong { color: var(--ink-primary); font-family: var(--font-mono); font-weight: 600; margin-left: 3px; }
+
+  /* ---- Asset cards ---- */
+  .asset-card {
+    background: var(--bg-panel-raised);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-md);
+    padding: 16px 17px;
+  }
+  .asset-category-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 100px;
+    margin-bottom: 10px;
+  }
+  .asset-category-badge.cat-savings { background: var(--signal-blue-dim); color: var(--signal-blue); }
+  .asset-category-badge.cat-cpf { background: var(--asset-gold-dim); color: var(--asset-gold); }
+  .asset-category-badge.cat-cash { background: var(--accent-glow); color: var(--accent); }
+  .asset-category-badge.cat-investment { background: var(--signal-green-dim); color: var(--signal-green); }
+  .asset-category-badge.cat-salary { background: rgba(233,237,241,0.12); color: var(--ink-primary); }
+
+  /* ---- Cards tab table ---- */
+  .cards-table { width: 100%; border-collapse: collapse; }
+  .cards-table th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-faint); font-weight: 600; padding: 0 14px 10px; border-bottom: 1px solid var(--border-hairline); }
+  .cards-table td { padding: 12px 14px; border-bottom: 1px solid var(--border-hairline); font-size: 12.5px; vertical-align: top; }
+  .cards-table tr:last-child td { border-bottom: none; }
+  .iscard-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 100px; font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+  .iscard-pill.yes { background: var(--signal-green-dim); color: var(--signal-green); }
+  .iscard-pill.no { background: var(--signal-red-dim); color: var(--signal-red); }
+  .iscard-pill.unclear { background: var(--signal-amber-dim); color: var(--signal-amber); }
+  .card-number-mono { font-family: var(--font-mono); font-size: 12px; }
+
+  /* ---- Income panel (inside Assets tab) ---- */
+  .income-compare-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--border-hairline); font-size: 12.5px; }
+  .income-compare-row:last-child { border-bottom: none; }
+  .income-compare-value { font-family: var(--font-mono); font-weight: 600; font-size: 14px; }
+
+  /* ---- Goals tab ---- */
+  .goal-card { background: var(--bg-panel-raised); border: 1px solid var(--border-hairline); border-radius: var(--radius-md); padding: 16px 17px; display: flex; gap: 16px; align-items: center; }
+  .goal-ring { width: 62px; height: 62px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: conic-gradient(var(--accent) calc(var(--pct) * 1%), var(--bg-panel) 0); }
+  .goal-ring-inner { width: 48px; height: 48px; border-radius: 50%; background: var(--bg-panel-raised); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 12px; font-weight: 600; }
+  .goal-info { flex: 1; min-width: 0; }
+  .goal-name { font-family: var(--font-display); font-weight: 600; font-size: 14px; margin-bottom: 3px; }
+  .goal-figures { font-size: 12px; color: var(--ink-muted); font-family: var(--font-mono); }
+  .goal-date { font-size: 11px; color: var(--ink-faint); margin-top: 3px; }
+  .goal-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  /* ---- Budget tab ---- */
+  .budget-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 10px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--border-hairline); }
+  .budget-row:last-child { border-bottom: none; }
+  .budget-cat-name { font-size: 13px; font-weight: 500; }
+  .budget-input { width: 100%; background: var(--bg-panel); border: 1px solid var(--border-hairline); border-radius: var(--radius-sm); padding: 6px 9px; color: var(--ink-primary); font-family: var(--font-mono); font-size: 12.5px; }
+  .budget-input:focus { outline: none; border-color: var(--accent); }
+  .budget-variance { font-family: var(--font-mono); font-weight: 600; font-size: 12.5px; text-align: right; }
+  .budget-variance.over { color: var(--signal-red); }
+  .budget-variance.under { color: var(--signal-green); }
+  .budget-variance.neutral { color: var(--ink-faint); }
+
+  /* ---- Subscriptions tab ---- */
+  .sub-card { background: var(--bg-panel-raised); border: 1px solid var(--border-hairline); border-radius: var(--radius-md); padding: 15px 16px; }
+  .sub-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .sub-name { font-family: var(--font-display); font-weight: 600; font-size: 14px; }
+  .sub-freq-tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; color: var(--ink-faint); background: var(--bg-panel); padding: 3px 8px; border-radius: 100px; }
+  .sub-amount { font-family: var(--font-mono); font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .sub-next { font-size: 11.5px; color: var(--ink-muted); padding-top: 9px; border-top: 1px solid var(--border-hairline); }
+
+  /* ---- Credit Bureau tab ---- */
+  .score-badge-wrap { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .score-circle {
+    width: 96px; height: 96px; border-radius: 50%; flex-shrink: 0;
+    background: conic-gradient(var(--signal-green) calc(var(--score-pct) * 1%), var(--bg-panel) 0);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .score-circle-inner {
+    width: 78px; height: 78px; border-radius: 50%; background: var(--bg-panel-raised);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .score-circle-value { font-family: var(--font-mono); font-size: 20px; font-weight: 700; color: var(--signal-green); line-height: 1; }
+  .score-circle-label { font-size: 9px; color: var(--ink-faint); margin-top: 2px; }
+  .risk-grade-scale { display: flex; gap: 3px; margin: 10px 0 6px; }
+  .risk-grade-seg { flex: 1; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; font-family: var(--font-mono); opacity: 0.35; }
+  .risk-grade-seg.active { opacity: 1; box-shadow: 0 0 0 2px var(--bg-panel-raised), 0 0 0 3px currentColor; }
+
+  .trend-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .trend-bar-month { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-faint); width: 58px; flex-shrink: 0; }
+  .trend-bar-track { flex: 1; height: 16px; background: var(--bg-panel); border-radius: 4px; overflow: hidden; }
+  .trend-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent-dim), var(--accent)); border-radius: 4px; }
+  .trend-bar-value { font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); width: 78px; text-align: right; flex-shrink: 0; }
+
+  .flag-box {
+    background: var(--signal-amber-dim); border: 1px solid rgba(245,166,35,0.3); border-radius: var(--radius-md);
+    padding: 13px 15px; margin-bottom: 10px; font-size: 12.5px; color: var(--ink-primary); line-height: 1.6;
+  }
+  .flag-box-number { color: var(--signal-amber); font-weight: 700; font-family: var(--font-mono); margin-right: 6px; }
+  .tracked-pill { font-size: 10.5px; font-weight: 600; padding: 3px 9px; border-radius: 100px; white-space: nowrap; }
+  .tracked-pill.yes { background: var(--signal-green-dim); color: var(--signal-green); }
+  .tracked-pill.unclear { background: var(--signal-amber-dim); color: var(--signal-amber); }
+  .asset-institution { font-family: var(--font-display); font-weight: 600; font-size: 13.5px; margin-bottom: 1px; }
+  .asset-label { font-size: 11px; color: var(--ink-muted); margin-bottom: 11px; }
+  .asset-balance { font-family: var(--font-mono); font-size: 19px; font-weight: 600; margin-bottom: 9px; }
+  .asset-asof { font-size: 10.5px; color: var(--ink-faint); padding-top: 9px; border-top: 1px solid var(--border-hairline); display: flex; justify-content: space-between; align-items: center; }
+  .asset-asof.stale { color: var(--signal-amber); }
+  .asset-row-actions { display: flex; gap: 6px; margin-top: 10px; }
+
+  /* ---- Category breakdown summary (top of Assets tab) ---- */
+  .asset-summary-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-hairline); font-size: 12.5px; }
+  .asset-summary-row:last-child { border-bottom: none; }
+
+  /* ---- Simple form modal (manual add) ---- */
+  .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  select.field-input { appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237C8896' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; background-size: 13px; padding-right: 30px;
+  }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 880px) {
+    .summary-strip { grid-template-columns: repeat(2, 1fr); }
+    .main { padding: 22px 18px 50px; }
+    .app { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: relative; flex-direction: row; align-items: center; padding: 12px 14px; overflow-x: auto; }
+    .brand { padding: 0 12px 0 0; border-right: 1px solid var(--border-hairline); margin-right: 8px; }
+    .nav { flex-direction: row; margin-top: 0; }
+    .nav-item span.nav-label { display: none; }
+    .sidebar-footer { display: none; }
+    .loan-fig-grid { grid-template-columns: repeat(2, 1fr); }
+    .networth-banner { flex-direction: column; align-items: flex-start; gap: 14px; }
+  }
+  @media (max-width: 540px) {
+    .summary-strip { grid-template-columns: 1fr 1fr; }
+    .card-grid { grid-template-columns: 1fr; }
+    .due-row { flex-wrap: wrap; }
+    .form-grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div id="authScreen" style="position:fixed; inset:0; z-index:500; background:var(--bg-void); display:flex; align-items:center; justify-content:center; padding:20px;">
+  <div style="width:100%; max-width:360px;">
+    <div style="text-align:center; margin-bottom:28px;">
+      <div class="brand-mark" style="margin:0 auto 12px; width:44px; height:44px; font-size:16px;">NC</div>
+      <div style="font-family:var(--font-display); font-weight:600; font-size:18px;">Net Worth Console</div>
+      <div style="font-size:12px; color:var(--ink-faint); margin-top:4px;">Sign in to sync your data across devices</div>
+    </div>
+    <div class="panel" style="padding:20px;">
+      <div class="field-row">
+        <div class="field-label">Email</div>
+        <input class="field-input" id="authEmail" type="email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="field-row">
+        <div class="field-label">Password</div>
+        <input class="field-input" id="authPassword" type="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div id="authError" style="font-size:12px; color:var(--signal-red); margin-bottom:10px; min-height:16px;"></div>
+      <button class="btn btn-primary" id="authSignInBtn" style="width:100%; justify-content:center; margin-bottom:8px;">Sign in</button>
+      <button class="btn btn-ghost" id="authSignUpBtn" style="width:100%; justify-content:center;">First time? Create account</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">DC</div>
+      <div class="brand-text">
+        <div class="brand-title">Net Worth Console</div>
+        <div class="brand-sub">Assets & Debts · SGD</div>
+      </div>
+    </div>
+
+    <nav class="nav" id="navList">
+      <!-- nav items injected by JS -->
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sync-status">
+        <span class="sync-dot"></span>
+        <span id="syncStatusText">Loaded</span>
+      </div>
+      <button class="reset-link" id="backupBtn" style="color:var(--ink-muted);">Download backup (JSON)</button>
+      <button class="reset-link" id="importBackupBtn" style="color:var(--ink-muted);">Import backup (JSON)</button>
+      <input type="file" id="importBackupInput" accept=".json" style="display:none;">
+      <button class="reset-link" id="resetBtn">Reset to last upload</button>
+      <button class="reset-link" id="signOutBtn" style="display:none;">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="page-title" id="pageTitle">Overview</div>
+      <div class="page-meta" id="pageMeta">—</div>
+    </div>
+
+    <div class="networth-banner" id="netWorthBanner">
+      <!-- net worth banner injected by JS -->
+    </div>
+
+    <div class="summary-strip" id="summaryStrip">
+      <!-- stat tiles injected by JS -->
+    </div>
+
+    <div id="tabContent" class="tab-fade">
+      <!-- active tab content injected by JS -->
+    </div>
+  </main>
+</div>
+
+<div id="toast-container"></div>
+<div id="modal-root"></div>
+
+<script>
+/* ============================================================
+   APP STATE & CONSTANTS
+   ============================================================ */
+const STORAGE_KEY = 'debt_console_state_v1';
+const API_KEY_STORAGE = 'debt_console_api_key_v1';
+
+// ---- Supabase config: fill these in with YOUR OWN project's values ----
+// Get both from your Supabase project: Settings > API
+// SUPABASE_URL looks like: https://abcdefghijk.supabase.co
+// SUPABASE_ANON_KEY is the "anon / public" key (safe to embed in client code --
+// Row Level Security in the database is what actually protects your data, not
+// keeping this key secret).
+const SUPABASE_URL = https://wvhlpwjyyqjismnlxcbh.supabase.co;
+const SUPABASE_ANON_KEY = sb_publishable_bem6THZeHff9VNGRh7RS8A_wujeZaW9;
+
+const supabaseClient = (SUPABASE_URL.startsWith('http'))
+  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+let currentUser = null;
+const MODEL = 'claude-sonnet-4-6';
+
+// id helper
+let __idCounter = 1;
+function genId(prefix) { return prefix + '_' + (__idCounter++) + '_' + Date.now().toString(36); }
+
+// Seed data — genuinely blank. Real data only ever lives in this browser's
+// local storage, never in this source file. See SEED_DATA below.
+const SEED_DATA = {
+  // Genuinely blank on purpose -- this app ships with NO real financial data
+  // hardcoded in its source, so the source file itself is safe to host,
+  // back up, or share without exposing anything. All real data lives only
+  // in this browser's local storage, loaded via Upload Statement or
+  // Import Backup (JSON) -- never baked into the code.
+  lastUpdated: new Date().toISOString(),
+  accounts: [],
+  loans: [],
+  otherBalances: [],
+  assets: [],
+  cardInventory: [],
+  goals: [],
+  budgetCategories: [
+    { id: 'bud_meals', category: 'Meals (General)', monthlyBudget: null, actual: null },
+    { id: 'bud_groceries', category: 'Groceries', monthlyBudget: null, actual: null },
+    { id: 'bud_transport', category: 'Public Transport', monthlyBudget: null, actual: null },
+    { id: 'bud_entertainment', category: 'Entertainment', monthlyBudget: null, actual: null },
+    { id: 'bud_shopping', category: 'Shopping', monthlyBudget: null, actual: null },
+    { id: 'bud_travel', category: 'Travel', monthlyBudget: null, actual: null },
+    { id: 'bud_gifts', category: 'Gifts', monthlyBudget: null, actual: null },
+    { id: 'bud_fixed', category: 'Fixed Expense (rent/utilities)', monthlyBudget: null, actual: null },
+    { id: 'bud_others', category: 'Others', monthlyBudget: null, actual: null },
+  ],
+  subscriptions: [],
+  creditBureau: null,
+  uploadHistory: [],
+};
+
+let state = null;
+let activeTab = 'overview';
+
+const TABS = [
+  { key: 'overview', label: 'Overview', icon: 'grid' },
+  { key: 'assets', label: 'Assets', icon: 'trendUp' },
+  { key: 'cards', label: 'Cards', icon: 'card' },
+  { key: 'accounts', label: 'Accounts', icon: 'bank' },
+  { key: 'loans', label: 'Instalment Loans', icon: 'layers' },
+  { key: 'goals', label: 'Goals', icon: 'target' },
+  { key: 'budget', label: 'Budget', icon: 'pie' },
+  { key: 'subscriptions', label: 'Subscriptions', icon: 'repeat' },
+  { key: 'creditbureau', label: 'Credit Bureau', icon: 'shield' },
+  { key: 'due', label: 'This Month Due', icon: 'calendar' },
+  { key: 'upload', label: 'Upload Statement', icon: 'upload' },
+];
+
+const ICONS = {
+  grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+  trendUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>',
+  card: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>',
+  bank: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M4 10h16M5 21V10M19 21V10M2 10l10-6 10 6M9 14v3M15 14v3"/></svg>',
+  layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>',
+  calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+  upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M6 10l6-6 6 6"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>',
+  target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>',
+  pie: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>',
+  repeat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
+  shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6l-8-4z"/><path d="M9 12l2 2 4-4"/></svg>',
+};
+
+/* ============================================================
+   STORAGE
+   ============================================================ */
+function backfillState() {
+  if (!state.uploadHistory) state.uploadHistory = [];
+  if (!state.assets) state.assets = [];
+  if (!state.cardInventory) state.cardInventory = [];
+  if (!state.goals) state.goals = [];
+  if (!state.budgetCategories) state.budgetCategories = JSON.parse(JSON.stringify(SEED_DATA.budgetCategories));
+  if (!state.subscriptions) state.subscriptions = [];
+  if (!state.creditBureau) state.creditBureau = null;
+}
+
+async function loadState() {
+  if (supabaseClient && currentUser) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('networth_state')
+        .select('state')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (data && data.state) {
+        state = data.state;
+        backfillState();
+        setSyncStatus('Synced from Supabase');
+        renderAll();
+        return;
+      }
+      // No row yet for this account -- first time signing in, seed and create it.
+      state = JSON.parse(JSON.stringify(SEED_DATA));
+      await saveState(false);
+      setSyncStatus('Seeded — first sync');
+      renderAll();
+      return;
+    } catch (e) {
+      console.error('Supabase load failed, falling back to local copy', e);
+      showToast('Could not reach Supabase — using local copy for now', 'error');
+      // falls through to the localStorage fallback below
+    }
+  }
+
+  // Fallback: Supabase not configured yet, not logged in, or briefly unreachable.
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw === null) throw new Error('No saved data found');
+    state = JSON.parse(raw);
+    backfillState();
+    setSyncStatus('Loaded local copy');
+  } catch (e) {
+    state = JSON.parse(JSON.stringify(SEED_DATA));
+    await saveState(false);
+    setSyncStatus('Seeded from your statements');
+  }
+  renderAll();
+}
+
+async function saveState(showToastOnSuccess = true) {
+  state.lastUpdated = new Date().toISOString();
+
+  // Always keep a local copy too -- an offline-safe fallback cache even when Supabase is primary.
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* non-fatal */ }
+
+  if (supabaseClient && currentUser) {
+    try {
+      const { error } = await supabaseClient
+        .from('networth_state')
+        .upsert({ user_id: currentUser.id, state: state, updated_at: new Date().toISOString() });
+      if (error) throw error;
+      if (showToastOnSuccess) showToast('Synced', 'success');
+      setSyncStatus('Synced just now');
+      return;
+    } catch (e) {
+      console.error('Supabase save failed', e);
+      showToast('Could not sync to Supabase — saved locally only', 'error');
+      setSyncStatus('Sync failed (saved locally)', true);
+      return;
+    }
+  }
+
+  if (showToastOnSuccess) showToast('Saved', 'success');
+  setSyncStatus('Saved locally');
+}
+
+function setSyncStatus(text, isError) {
+  const el = document.getElementById('syncStatusText');
+  const dot = document.querySelector('.sync-dot');
+  if (el) el.textContent = text;
+  if (dot) dot.style.background = isError ? 'var(--signal-red)' : 'var(--signal-green)';
+}
+
+/* ============================================================
+   FORMAT HELPERS
+   ============================================================ */
+function fmtMoney(v, opts) {
+  opts = opts || {};
+  if (v === null || v === undefined) return opts.dash !== false ? '—' : '';
+  return 'S$' + Number(v).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtMoneyCompact(v) {
+  if (v === null || v === undefined) return '—';
+  return 'S$' + Number(v).toLocaleString('en-SG', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+function fmtPct(v) {
+  if (v === null || v === undefined) return '—';
+  return (v * 100).toFixed(2) + '%';
+}
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d)) return '—';
+  return d.toLocaleDateString('en-SG', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+function fmtDateShort(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d)) return '—';
+  return d.toLocaleDateString('en-SG', { day: '2-digit', month: 'short' });
+}
+function daysUntil(iso) {
+  if (!iso) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(iso + 'T00:00:00');
+  return Math.round((target - today) / 86400000);
+}
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function statusPillClass(status) {
+  switch (status) {
+    case 'Paid': return 'status-paid';
+    case 'Pending': return 'status-pending';
+    case 'Overdue': return 'status-overdue';
+    case 'Not yet billed': return 'status-notbilled';
+    default: return 'status-unknown';
+  }
+}
+
+function dueLedClass(days) {
+  if (days === null) return 'led-gray';
+  if (days <= 0) return 'led-red';
+  if (days <= 3) return 'led-amber';
+  if (days <= 7) return 'led-yellow';
+  return 'led-green';
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function showToast(message, type) {
+  const container = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type || 'info');
+  t.textContent = message;
+  container.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 3200);
+}
+
+/* ============================================================
+   AGGREGATE CALCULATIONS
+   ============================================================ */
+function calcTotals() {
+  const loanOutstanding = state.loans.reduce((sum, l) => {
+    const v = l.outstandingInclInterest ?? l.outstandingPrincipalOnly;
+    return sum + (v || 0);
+  }, 0);
+  const otherOutstanding = state.otherBalances.reduce((s, o) => s + (o.amount || 0), 0);
+  const monthlyCommitment = state.loans.reduce((s, l) => s + (l.monthlyInstalment || 0), 0);
+  const dueThisCycle = state.accounts.reduce((s, a) => s + (a.dueDate && a.balance ? a.balance : 0), 0);
+  const totalPrincipal = state.loans.reduce((s, l) => s + (l.principal || 0), 0);
+
+  const upcoming = state.accounts
+    .filter(a => a.dueDate && a.status !== 'Paid')
+    .map(a => ({ ...a, days: daysUntil(a.dueDate) }))
+    .sort((a, b) => a.days - b.days);
+  const nextDue = upcoming[0] || null;
+
+  const totalLiabilities = loanOutstanding + otherOutstanding;
+  // Salary is income (a flow), not a balance held -- excluded from Total Assets / Net Worth
+  // so it doesn't double-count once that income lands in a savings/cash balance.
+  const heldAssets = state.assets.filter(a => a.category !== 'Salary');
+  const totalAssets = heldAssets.reduce((s, a) => s + (a.balance || 0), 0);
+  const netWorth = totalAssets - totalLiabilities;
+  const assetsByCategory = {};
+  heldAssets.forEach(a => { assetsByCategory[a.category] = (assetsByCategory[a.category] || 0) + (a.balance || 0); });
+
+  const salaryEntries = state.assets
+    .filter(a => a.category === 'Salary')
+    .slice()
+    .sort((a, b) => (b.asOfDate || '').localeCompare(a.asOfDate || ''));
+  const latestSalary = salaryEntries[0] || null;
+  const disposable = latestSalary ? latestSalary.balance - monthlyCommitment : null;
+
+  return { loanOutstanding, otherOutstanding, monthlyCommitment, dueThisCycle, totalPrincipal, nextDue, loanCount: state.loans.length,
+           totalLiabilities, totalAssets, netWorth, assetsByCategory, salaryEntries, latestSalary, disposable };
+}
+
+/* ============================================================
+   NAV + SUMMARY STRIP (persistent chrome)
+   ============================================================ */
+function renderNav() {
+  const nav = document.getElementById('navList');
+  nav.innerHTML = TABS.map(t => `
+    <button class="nav-item ${activeTab === t.key ? 'active' : ''}" data-tab="${t.key}">
+      <span class="nav-icon">${ICONS[t.icon]}</span>
+      <span class="nav-label">${t.label}</span>
+    </button>
+  `).join('');
+  nav.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+}
+
+function switchTab(key) {
+  activeTab = key;
+  renderAll();
+}
+
+function renderSummaryStrip() {
+  const t = calcTotals();
+  const totalOut = t.loanOutstanding + t.otherOutstanding;
+  const strip = document.getElementById('summaryStrip');
+  strip.innerHTML = `
+    <div class="stat-tile accent-cyan">
+      <div class="stat-label">Total Outstanding</div>
+      <div class="stat-value">${fmtMoneyCompact(totalOut)}</div>
+      <div class="stat-sub">${t.loanCount} instalment plans · 8 banks</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-label">Monthly Load</div>
+      <div class="stat-value">${fmtMoney(t.monthlyCommitment)}</div>
+      <div class="stat-sub">committed across all loans</div>
+    </div>
+    <div class="stat-tile accent-amber">
+      <div class="stat-label">Due This Cycle</div>
+      <div class="stat-value">${fmtMoney(t.dueThisCycle)}</div>
+      <div class="stat-sub">sum of statement balances</div>
+    </div>
+    <div class="stat-tile ${t.nextDue ? 'accent-green' : ''}">
+      <div class="stat-label">Next Due</div>
+      <div class="stat-value" style="font-size:16px;">${t.nextDue ? escapeHtml(t.nextDue.bank.split('(')[0].trim()) : 'All clear'}</div>
+      <div class="stat-sub">${t.nextDue ? (t.nextDue.days <= 0 ? 'due now' : 'in ' + t.nextDue.days + ' day' + (t.nextDue.days===1?'':'s')) + ' · ' + fmtDateShort(t.nextDue.dueDate) : 'nothing pending'}</div>
+    </div>
+  `;
+}
+
+function renderNetWorthBanner() {
+  const t = calcTotals();
+  const total = t.totalAssets + t.totalLiabilities;
+  const assetsPct = total > 0 ? Math.max(2, (t.totalAssets / total) * 100) : 50;
+  const banner = document.getElementById('netWorthBanner');
+  const isNeg = t.netWorth < 0;
+  banner.innerHTML = `
+    <div class="networth-main">
+      <div class="networth-label">Net Worth</div>
+      <div class="networth-value ${isNeg ? 'negative' : 'positive'}">${isNeg ? '−' : ''}${fmtMoney(Math.abs(t.netWorth))}</div>
+    </div>
+    <div class="networth-bar-wrap">
+      <div class="networth-bar">
+        <div class="networth-bar-seg assets-seg" style="width:${assetsPct}%"></div>
+        <div class="networth-bar-seg liab-seg" style="width:${100-assetsPct}%"></div>
+      </div>
+      <div class="networth-bar-legend">
+        <span><span class="sw" style="background:var(--asset-gold);"></span>Assets<strong>${fmtMoneyCompact(t.totalAssets)}</strong></span>
+        <span><span class="sw" style="background:var(--accent);"></span>Liabilities<strong>${fmtMoneyCompact(t.totalLiabilities)}</strong></span>
+      </div>
+    </div>
+  `;
+}
+
+function renderAll() {
+  renderNav();
+  renderNetWorthBanner();
+  renderSummaryStrip();
+  const tabDef = TABS.find(t => t.key === activeTab);
+  document.getElementById('pageTitle').textContent = tabDef.label;
+  document.getElementById('pageMeta').textContent = 'updated ' + new Date(state.lastUpdated).toLocaleDateString('en-SG', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const content = document.getElementById('tabContent');
+  content.classList.remove('tab-fade'); void content.offsetWidth; content.classList.add('tab-fade');
+
+  if (activeTab === 'overview') renderOverviewTab(content);
+  else if (activeTab === 'assets') renderAssetsTab(content);
+  else if (activeTab === 'cards') renderCardsTab(content);
+  else if (activeTab === 'accounts') renderAccountsTab(content);
+  else if (activeTab === 'loans') renderLoansTab(content);
+  else if (activeTab === 'goals') renderGoalsTab(content);
+  else if (activeTab === 'budget') renderBudgetTab(content);
+  else if (activeTab === 'subscriptions') renderSubscriptionsTab(content);
+  else if (activeTab === 'creditbureau') renderCreditBureauTab(content);
+  else if (activeTab === 'due') renderDueTab(content);
+  else if (activeTab === 'upload') renderUploadTab(content);
+}
+</script>
+<script>
+/* ============================================================
+   TAB: OVERVIEW
+   ============================================================ */
+function renderOverviewTab(content) {
+  const t = calcTotals();
+  const byBank = {};
+  state.loans.forEach(l => {
+    const v = l.outstandingInclInterest ?? l.outstandingPrincipalOnly ?? 0;
+    byBank[l.bank] = (byBank[l.bank] || 0) + v;
+  });
+  const totalForBars = Object.values(byBank).reduce((a,b) => a+b, 0) || 1;
+  const bankRows = Object.entries(byBank).sort((a,b) => b[1]-a[1]);
+
+  const upcoming = state.accounts
+    .filter(a => a.dueDate)
+    .map(a => ({ ...a, days: daysUntil(a.dueDate) }))
+    .sort((a, b) => a.days - b.days)
+    .slice(0, 4);
+
+  // ---- Monthly refresh readiness: flag accounts whose last statement is over ~35 days old
+  // (roughly one monthly billing cycle + a few days grace) -- a nudge that a new one is probably out, not a fault.
+  const dueForRefresh = state.accounts
+    .filter(a => a.statementDate)
+    .map(a => ({ ...a, daysOld: Math.round((new Date() - new Date(a.statementDate + 'T00:00:00')) / 86400000) }))
+    .filter(a => a.daysOld > 35)
+    .sort((a,b) => b.daysOld - a.daysOld);
+
+  content.innerHTML = `
+    ${dueForRefresh.length ? `
+    <div class="panel" style="margin-bottom:14px; border-color:var(--border-glow);">
+      <div class="panel-header">
+        <div class="panel-title"><i style="color:var(--accent);">↻</i>&nbsp; Ready for a refresh</div>
+        <button class="btn btn-sm btn-primary" data-go-tab="upload">Upload statements</button>
+      </div>
+      <div class="panel-body" style="padding-top:12px;">
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          ${dueForRefresh.map(a => `
+            <span style="display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:6px 11px; border-radius:100px; background:var(--bg-panel-raised); border:1px solid var(--border-hairline);">
+              ${escapeHtml(a.bank.split('(')[0].trim())}
+              <span style="color:var(--ink-faint); font-family:var(--font-mono); font-size:10.5px;">${a.daysOld}d old</span>
+            </span>
+          `).join('')}
+        </div>
+        <div style="font-size:11px; color:var(--ink-faint); margin-top:10px;">These banks' last statement is over a month old — a new one has likely been issued. Upload it to keep balances, due dates, and instalment counts current.</div>
+      </div>
+    </div>` : ''}
+
+    <div style="display:grid; grid-template-columns: 1.3fr 1fr; gap:14px; align-items:start;">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Outstanding by bank</div>
+          <div class="page-meta">incl. interest where stated</div>
+        </div>
+        <div class="panel-body">
+          ${bankRows.map(([bank, val]) => `
+            <div style="margin-bottom:13px;">
+              <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:5px;">
+                <span style="font-weight:500;">${escapeHtml(bank)}</span>
+                <span style="font-family:var(--font-mono); color:var(--ink-muted);">${fmtMoneyCompact(val)}</span>
+              </div>
+              <div style="height:7px; background:var(--bg-panel-raised); border-radius:4px; overflow:hidden;">
+                <div style="height:100%; width:${Math.max(2, (val/totalForBars*100))}%; background:linear-gradient(90deg, var(--accent-dim), var(--accent)); border-radius:4px;"></div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Coming up</div>
+          <button class="btn btn-ghost btn-sm" data-go-tab="due">View all →</button>
+        </div>
+        <div class="panel-body" style="padding-top:14px;">
+          ${upcoming.length ? upcoming.map(a => `
+            <div style="display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border-hairline);">
+              <span class="due-row-led ${dueLedClass(a.status==='Paid' ? null : a.days)}"></span>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:12.5px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(a.bank.split('(')[0].trim())}</div>
+                <div style="font-size:10.5px; color:var(--ink-faint);">${fmtDateShort(a.dueDate)}</div>
+              </div>
+              <span class="status-pill ${statusPillClass(a.status)}" style="flex-shrink:0;"><span class="dot"></span>${a.status}</span>
+            </div>
+          `).join('') : '<div class="empty-state-text">Nothing scheduled.</div>'}
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:14px;">
+      <div class="panel-header">
+        <div class="panel-title">Snapshot</div>
+      </div>
+      <div class="panel-body" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:18px;">
+        <div>
+          <div class="stat-label">Total principal financed</div>
+          <div class="stat-value" style="font-size:17px;">${fmtMoneyCompact(t.totalPrincipal)}</div>
+        </div>
+        <div>
+          <div class="stat-label">Other fees outstanding</div>
+          <div class="stat-value" style="font-size:17px;">${fmtMoney(t.otherOutstanding)}</div>
+        </div>
+        <div>
+          <div class="stat-label">Banks tracked</div>
+          <div class="stat-value" style="font-size:17px;">${state.accounts.length}</div>
+        </div>
+        <div>
+          <div class="stat-label">Instalment plans</div>
+          <div class="stat-value" style="font-size:17px;">${state.loans.length}</div>
+        </div>
+      </div>
+      <div style="padding:0 20px 16px; font-size:11px; color:var(--ink-faint); line-height:1.5;">
+        "Total Outstanding" uses each loan's incl.-interest figure where the bank disclosed one, and falls back to principal-only where it didn't (e.g. Standard Chartered) — so it's a best-available estimate, not a perfectly consistent basis across every loan.
+      </div>
+    </div>
+  `;
+  content.querySelectorAll('[data-go-tab]').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.goTab)));
+}
+
+/* ============================================================
+   TAB: ACCOUNTS
+   ============================================================ */
+function renderAccountsTab(content) {
+  content.innerHTML = `
+    <div class="card-grid">
+      ${state.accounts.map(a => `
+        <div class="account-card">
+          <div class="card-top-row">
+            <div>
+              <div class="card-bank-name">${escapeHtml(a.bank.split('(')[0].trim())}</div>
+              <div class="card-type">${escapeHtml(a.accountType)}${a.last4 && a.last4 !== 'n/a' ? ' · ···' + escapeHtml(a.last4) : ''}</div>
+            </div>
+            <span class="status-pill ${statusPillClass(a.status)}"><span class="dot"></span>${a.status}</span>
+          </div>
+          <div class="card-balance-row">
+            <div class="card-balance-label">Statement balance</div>
+            <div class="card-balance-value">${fmtMoney(a.balance)}</div>
+          </div>
+          <div class="card-meta-row">
+            <span>Due</span><span>${fmtDate(a.dueDate)}</span>
+          </div>
+          <div class="card-meta-row">
+            <span>Min. payment</span><span>${fmtMoney(a.minPayment)}</span>
+          </div>
+          <div class="card-meta-row">
+            <span>Credit limit</span><span>${a.creditLimit !== null ? fmtMoneyCompact(a.creditLimit) : 'N/A (loan)'}</span>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+/* ============================================================
+   TAB: CARDS
+   ============================================================ */
+function renderCardsTab(content) {
+  const cards = state.cardInventory || [];
+  const confirmedCards = cards.filter(c => c.isCard === 'yes');
+  const notCards = cards.filter(c => c.isCard !== 'yes');
+
+  content.innerHTML = `
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-header">
+        <div class="panel-title">Confirmed credit cards</div>
+        <div class="page-meta">${confirmedCards.length} found</div>
+      </div>
+      <div class="panel-body" style="padding-top:6px;">
+        <table class="cards-table">
+          <thead><tr><th>Bank</th><th>Product</th><th>Number</th></tr></thead>
+          <tbody>
+            ${confirmedCards.map(c => `
+              <tr>
+                <td style="font-weight:500;">${escapeHtml(c.bank)}</td>
+                <td>${escapeHtml(c.product)}</td>
+                <td class="card-number-mono">${escapeHtml(c.number)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Not cards / unclear</div>
+        <div class="page-meta">loan or repayment facilities, not cards</div>
+      </div>
+      <div class="panel-body" style="padding-top:6px;">
+        <table class="cards-table">
+          <thead><tr><th>Bank</th><th>Product</th><th>Number</th><th>Is it a card?</th><th>Why</th></tr></thead>
+          <tbody>
+            ${notCards.map(c => `
+              <tr>
+                <td style="font-weight:500;">${escapeHtml(c.bank)}</td>
+                <td>${escapeHtml(c.product)}</td>
+                <td class="card-number-mono">${escapeHtml(c.number)}</td>
+                <td><span class="iscard-pill ${c.isCard}">${c.isCard === 'unclear' ? 'Unclear' : 'No'}</span></td>
+                <td style="color:var(--ink-faint); font-size:11.5px; line-height:1.5;">${escapeHtml(c.notes)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="padding:14px 4px 0; font-size:11.5px; color:var(--ink-faint); line-height:1.6;">
+      No debit card information appears anywhere across the uploaded statements. If you do hold a debit card, it isn't visible from these documents — a savings/current account statement would be needed to confirm one.
+    </div>
+  `;
+}
+
+/* ============================================================
+   TAB: INSTALMENT LOANS
+   ============================================================ */
+function loanSignalBar(paid, tenure) {
+  if (paid === null || tenure === null) {
+    return `<div style="font-size:11px; color:var(--ink-faint); font-style:italic; margin:10px 0 8px;">Paid/tenure not yet known for this plan</div>`;
+  }
+  const segs = 20;
+  const filledSegs = Math.round((paid / tenure) * segs);
+  let bar = '<div class="signal-bar">';
+  for (let i = 0; i < segs; i++) {
+    bar += `<div class="signal-seg ${i < filledSegs ? 'filled' : ''}"></div>`;
+  }
+  bar += '</div>';
+  const pct = Math.round((paid/tenure)*100);
+  bar += `<div class="signal-bar-label"><span>${paid}/${tenure} paid (${pct}%)</span><span>${tenure-paid} left</span></div>`;
+  return bar;
+}
+
+// Payoff date = statement date + remaining months. Mirrors the Excel's EDATE(statementDate, remaining) formula.
+// Returns null if statementDate, tenure, or paid count is missing -- never guesses a date from partial data.
+function computePayoffDate(loan) {
+  if (!loan.statementDate || loan.tenureMonths === null || loan.instalmentsPaid === null) return null;
+  const remaining = loan.tenureMonths - loan.instalmentsPaid;
+  const d = new Date(loan.statementDate + 'T00:00:00');
+  d.setMonth(d.getMonth() + remaining);
+  return d.toISOString().slice(0, 10);
+}
+function fmtMonthYear(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-SG', { month: 'short', year: 'numeric' });
+}
+// Interest remaining -- only calculable where a bank discloses BOTH principal-only AND incl-interest
+// figures on the same statement (currently just OCBC). Never estimated via amortisation for the rest,
+// since EIR structures vary too much bank-to-bank to guess reliably.
+function computeInterestRemaining(loan) {
+  if (loan.outstandingPrincipalOnly === null || loan.outstandingInclInterest === null) return null;
+  return loan.outstandingInclInterest - loan.outstandingPrincipalOnly;
+}
+
+function renderLoansTab(content) {
+  const sorted = [...state.loans].sort((a,b) => a.bank.localeCompare(b.bank));
+  content.innerHTML = `
+    <div class="legend-row" style="margin-bottom:14px; padding:0;">
+      <div class="legend-item"><span class="legend-dot" style="background:var(--accent);"></span>Segments = instalments paid vs. remaining</div>
+    </div>
+    <div class="card-grid" style="grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));">
+      ${sorted.map(l => `
+        <div class="loan-card">
+          <div class="loan-card-head">
+            <span class="loan-bank-tag">${escapeHtml(l.bank)}</span>
+          </div>
+          <div class="loan-plan-desc">${escapeHtml(l.planDescription)}</div>
+
+          ${loanSignalBar(l.instalmentsPaid, l.tenureMonths)}
+
+          <div class="loan-fig-grid" style="margin-top:14px;">
+            <div>
+              <div class="loan-fig-label">Principal</div>
+              <div class="loan-fig-value ${l.principal===null?'muted':''}">${l.principal!==null ? fmtMoneyCompact(l.principal) : 'not disclosed'}</div>
+            </div>
+            <div>
+              <div class="loan-fig-label">Monthly</div>
+              <div class="loan-fig-value">${fmtMoney(l.monthlyInstalment)}</div>
+            </div>
+            <div>
+              <div class="loan-fig-label">Years left</div>
+              <div class="loan-fig-value ${(l.instalmentsPaid===null||l.tenureMonths===null)?'muted':''}">${(l.instalmentsPaid!==null&&l.tenureMonths!==null) ? ((l.tenureMonths-l.instalmentsPaid)/12).toFixed(1) : 'unknown'}</div>
+            </div>
+          </div>
+
+          <div class="loan-fig-grid">
+            <div style="grid-column: span 2;">
+              <div class="loan-fig-label">Outstanding</div>
+              <div class="loan-fig-value ${(l.outstandingInclInterest===null && l.outstandingPrincipalOnly===null)?'muted':''}">${l.outstandingInclInterest!==null ? fmtMoney(l.outstandingInclInterest)+' (incl. interest)' : (l.outstandingPrincipalOnly!==null ? fmtMoney(l.outstandingPrincipalOnly)+' (principal only)' : 'not disclosed')}</div>
+            </div>
+          </div>
+
+          <div class="loan-fig-grid">
+            <div>
+              <div class="loan-fig-label">Est. payoff date</div>
+              <div class="loan-fig-value ${computePayoffDate(l)===null?'muted':''}" style="${computePayoffDate(l)!==null?'color:var(--accent);':''}">${computePayoffDate(l)!==null ? fmtMonthYear(computePayoffDate(l)) : 'unknown'}</div>
+            </div>
+            <div style="grid-column: span 2;">
+              <div class="loan-fig-label">Interest remaining</div>
+              <div class="loan-fig-value ${computeInterestRemaining(l)===null?'muted':''}">${computeInterestRemaining(l)!==null ? fmtMoney(computeInterestRemaining(l)) : 'not broken down by bank'}</div>
+            </div>
+          </div>
+
+          ${(l.appliedRate !== null || l.effectiveRate !== null) ? `
+            <div class="rate-tags">
+              ${l.appliedRate !== null ? `<span class="rate-tag">Applied ${fmtPct(l.appliedRate)}</span>` : ''}
+              ${l.effectiveRate !== null ? `<span class="rate-tag">EIR ${fmtPct(l.effectiveRate)}</span>` : ''}
+            </div>
+          ` : ''}
+
+          ${l.notes ? `<div style="font-size:11px; color:var(--ink-faint); margin-top:11px; line-height:1.5; border-top:1px solid var(--border-hairline); padding-top:10px;">${escapeHtml(l.notes)}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+/* ============================================================
+   TAB: GOALS
+   ============================================================ */
+function renderGoalsTab(content) {
+  if (state.goals.length === 0) {
+    content.innerHTML = `
+      <div class="empty-state" style="padding:60px 20px;">
+        <div class="empty-state-icon">🎯</div>
+        <div class="empty-state-text" style="font-size:14px; margin-bottom:18px; max-width:380px; margin-left:auto; margin-right:auto;">
+          No savings goals set yet — add one to start tracking progress toward something specific, like a house deposit or an emergency fund.
+        </div>
+        <button class="btn btn-primary" id="openAddGoalModal">+ Add a goal</button>
+      </div>
+    `;
+    document.getElementById('openAddGoalModal').addEventListener('click', () => openGoalModal());
+    return;
+  }
+
+  const totalTarget = state.goals.reduce((s,g) => s + (g.target||0), 0);
+  const totalFunded = state.goals.reduce((s,g) => s + (g.funded||0), 0);
+
+  content.innerHTML = `
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-header">
+        <div class="panel-title">All goals</div>
+        <button class="btn btn-sm btn-primary" id="openAddGoalModal2">+ Add a goal</button>
+      </div>
+      <div class="panel-body" style="display:flex; gap:24px;">
+        <div><div class="stat-label">Total target</div><div class="stat-value" style="font-size:17px;">${fmtMoneyCompact(totalTarget)}</div></div>
+        <div><div class="stat-label">Total funded</div><div class="stat-value" style="font-size:17px; color:var(--signal-green);">${fmtMoneyCompact(totalFunded)}</div></div>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      ${state.goals.map(g => {
+        const pct = g.target > 0 ? Math.min(100, Math.round((g.funded/g.target)*100)) : 0;
+        return `
+        <div class="goal-card">
+          <div class="goal-ring" style="--pct:${pct};">
+            <div class="goal-ring-inner">${pct}%</div>
+          </div>
+          <div class="goal-info">
+            <div class="goal-name">${escapeHtml(g.name)}</div>
+            <div class="goal-figures">${fmtMoney(g.funded)} of ${fmtMoney(g.target)}</div>
+            ${g.targetDate ? `<div class="goal-date">Target: ${fmtDate(g.targetDate)}</div>` : ''}
+          </div>
+          <div class="goal-actions">
+            <button class="btn btn-sm btn-ghost" data-edit-goal="${g.id}">Edit</button>
+            <button class="btn btn-sm btn-ghost" data-delete-goal="${g.id}" style="color:var(--signal-red);">Remove</button>
+          </div>
+        </div>
+      `}).join('')}
+    </div>
+  `;
+  document.getElementById('openAddGoalModal2').addEventListener('click', () => openGoalModal());
+  content.querySelectorAll('[data-edit-goal]').forEach(b => b.addEventListener('click', () => openGoalModal(b.dataset.editGoal)));
+  content.querySelectorAll('[data-delete-goal]').forEach(b => b.addEventListener('click', async () => {
+    state.goals = state.goals.filter(g => g.id !== b.dataset.deleteGoal);
+    await saveState(false);
+    showToast('Removed', 'info');
+    renderAll();
+  }));
+}
+
+function openGoalModal(editId) {
+  const editing = editId ? state.goals.find(g => g.id === editId) : null;
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay" id="goalModalOverlay">
+      <div class="modal-box" style="max-width:420px;">
+        <div class="modal-head">
+          <div class="modal-title">${editing ? 'Edit goal' : 'Add a goal'}</div>
+          <button class="close-x" id="goalModalClose">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="field-row">
+            <div class="field-label">Goal name</div>
+            <input class="field-input" id="g_name" placeholder="e.g. House deposit, Emergency fund" value="${editing ? escapeHtml(editing.name) : ''}">
+          </div>
+          <div class="form-grid-2 field-row">
+            <div>
+              <div class="field-label">Target amount (SGD)</div>
+              <input class="field-input" id="g_target" type="number" step="0.01" value="${editing ? editing.target : ''}">
+            </div>
+            <div>
+              <div class="field-label">Funded so far (SGD)</div>
+              <input class="field-input" id="g_funded" type="number" step="0.01" value="${editing ? editing.funded : '0'}">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Target date (optional)</div>
+            <input class="field-input" id="g_date" type="date" value="${editing ? (editing.targetDate || '') : ''}">
+          </div>
+        </div>
+        <div class="modal-foot">
+          ${editing ? '<button class="btn btn-ghost" id="goalModalDelete" style="color:var(--signal-red); margin-right:auto;">Delete</button>' : ''}
+          <button class="btn btn-ghost" id="goalModalCancel">Cancel</button>
+          <button class="btn btn-primary" id="goalModalSave">${editing ? 'Save changes' : 'Add goal'}</button>
+        </div>
+      </div>
+    </div>
+  `;
+  const close = () => { root.innerHTML = ''; };
+  document.getElementById('goalModalClose').addEventListener('click', close);
+  document.getElementById('goalModalCancel').addEventListener('click', close);
+  document.getElementById('goalModalOverlay').addEventListener('click', (e) => { if (e.target.id === 'goalModalOverlay') close(); });
+  if (editing) {
+    document.getElementById('goalModalDelete').addEventListener('click', async () => {
+      state.goals = state.goals.filter(g => g.id !== editing.id);
+      await saveState(false); close(); showToast('Removed', 'info'); renderAll();
+    });
+  }
+  document.getElementById('goalModalSave').addEventListener('click', async () => {
+    const name = document.getElementById('g_name').value.trim();
+    const target = parseFloat(document.getElementById('g_target').value);
+    const funded = parseFloat(document.getElementById('g_funded').value) || 0;
+    const targetDate = document.getElementById('g_date').value || null;
+    if (!name || isNaN(target) || target <= 0) { showToast('Fill in a goal name and target amount', 'error'); return; }
+    if (editing) {
+      Object.assign(editing, { name, target, funded, targetDate });
+    } else {
+      state.goals.push({ id: genId('goal'), name, target, funded, targetDate, notes: 'Added manually' });
+    }
+    await saveState(false);
+    close();
+    showToast(editing ? 'Updated' : 'Added', 'success');
+    renderAll();
+  });
+}
+
+/* ============================================================
+   TAB: BUDGET
+   ============================================================ */
+function renderBudgetTab(content) {
+  const cats = state.budgetCategories;
+  const totalBudget = cats.reduce((s,c) => s + (c.monthlyBudget||0), 0);
+  const totalActual = cats.reduce((s,c) => s + (c.actual||0), 0);
+  const anyActual = cats.some(c => c.actual !== null);
+
+  content.innerHTML = `
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-body" style="display:flex; gap:24px;">
+        <div><div class="stat-label">Total monthly budget</div><div class="stat-value" style="font-size:17px;">${fmtMoneyCompact(totalBudget)}</div></div>
+        <div><div class="stat-label">This month's actual</div><div class="stat-value" style="font-size:17px; ${anyActual ? '' : 'color:var(--ink-faint);'}">${anyActual ? fmtMoneyCompact(totalActual) : 'not logged yet'}</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Categories</div>
+        <div class="page-meta">edit budget & actual directly</div>
+      </div>
+      <div class="panel-body">
+        <div class="budget-row" style="border-bottom:1px solid var(--border-glow); padding-bottom:8px; margin-bottom:4px;">
+          <span style="font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Category</span>
+          <span style="font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Budget</span>
+          <span style="font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">Actual</span>
+          <span style="font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.04em; font-weight:600; text-align:right;">Variance</span>
+        </div>
+        ${cats.map(c => {
+          const variance = (c.monthlyBudget !== null && c.actual !== null) ? c.monthlyBudget - c.actual : null;
+          const vClass = variance === null ? 'neutral' : (variance < 0 ? 'over' : 'under');
+          const vText = variance === null ? '—' : (variance < 0 ? '−' + fmtMoney(Math.abs(variance)) : fmtMoney(variance));
+          return `
+          <div class="budget-row">
+            <span class="budget-cat-name">${escapeHtml(c.category)}</span>
+            <input class="budget-input" data-budget-id="${c.id}" data-field="monthlyBudget" type="number" step="0.01" placeholder="—" value="${c.monthlyBudget !== null ? c.monthlyBudget : ''}">
+            <input class="budget-input" data-budget-id="${c.id}" data-field="actual" type="number" step="0.01" placeholder="—" value="${c.actual !== null ? c.actual : ''}">
+            <span class="budget-variance ${vClass}">${vText}</span>
+          </div>
+        `}).join('')}
+      </div>
+    </div>
+    <div style="padding:14px 4px 0; font-size:11.5px; color:var(--ink-faint); line-height:1.6;">
+      Categories are a generic starting point — no actual spending has been found in any uploaded statement so far (everything uploaded to date has been loans, fees, and interest). Type figures in directly, or they'll update automatically once a statement with real spending is uploaded.
+    </div>
+  `;
+
+  content.querySelectorAll('.budget-input').forEach(inp => {
+    inp.addEventListener('change', async (e) => {
+      const cat = state.budgetCategories.find(c => c.id === e.target.dataset.budgetId);
+      const field = e.target.dataset.field;
+      const val = parseFloat(e.target.value);
+      cat[field] = isNaN(val) ? null : val;
+      await saveState(false);
+      renderAll();
+    });
+  });
+}
+
+/* ============================================================
+   TAB: SUBSCRIPTIONS
+   ============================================================ */
+function monthlyEquivalent(amount, frequency) {
+  if (amount === null || amount === undefined) return 0;
+  switch (frequency) {
+    case 'Annual': return amount / 12;
+    case 'Quarterly': return amount / 3;
+    case 'Weekly': return amount * 4.33;
+    default: return amount; // Monthly
+  }
+}
+
+function renderSubscriptionsTab(content) {
+  if (state.subscriptions.length === 0) {
+    content.innerHTML = `
+      <div class="empty-state" style="padding:60px 20px;">
+        <div class="empty-state-icon">🔁</div>
+        <div class="empty-state-text" style="font-size:14px; margin-bottom:18px; max-width:400px; margin-left:auto; margin-right:auto;">
+          No subscriptions or recurring charges have been identified in any uploaded statement so far. Add any you know about, or they'll be caught automatically if a future statement shows one.
+        </div>
+        <button class="btn btn-primary" id="openAddSubModal">+ Add a subscription</button>
+      </div>
+    `;
+    document.getElementById('openAddSubModal').addEventListener('click', () => openSubscriptionModal());
+    return;
+  }
+
+  const estMonthly = state.subscriptions.reduce((s,sub) => s + monthlyEquivalent(sub.amount, sub.frequency), 0);
+
+  content.innerHTML = `
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-header">
+        <div class="panel-title">Estimated monthly cost</div>
+        <button class="btn btn-sm btn-primary" id="openAddSubModal2">+ Add a subscription</button>
+      </div>
+      <div class="panel-body">
+        <div class="stat-value" style="font-size:22px;">${fmtMoney(estMonthly)}</div>
+        <div class="stat-sub">Annual/Quarterly/Weekly charges converted to a monthly-equivalent</div>
+      </div>
+    </div>
+    <div class="card-grid">
+      ${state.subscriptions.map(s => `
+        <div class="sub-card">
+          <div class="sub-card-top">
+            <div class="sub-name">${escapeHtml(s.service)}</div>
+            <span class="sub-freq-tag">${escapeHtml(s.frequency)}</span>
+          </div>
+          <div class="sub-amount">${fmtMoney(s.amount)}</div>
+          <div class="sub-next">${s.nextChargeDate ? 'Next charge ' + fmtDate(s.nextChargeDate) : 'No next date on file'}</div>
+          <div class="asset-row-actions">
+            <button class="btn btn-sm btn-ghost" data-edit-sub="${s.id}">Edit</button>
+            <button class="btn btn-sm btn-ghost" data-delete-sub="${s.id}" style="color:var(--signal-red);">Remove</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  document.getElementById('openAddSubModal2').addEventListener('click', () => openSubscriptionModal());
+  content.querySelectorAll('[data-edit-sub]').forEach(b => b.addEventListener('click', () => openSubscriptionModal(b.dataset.editSub)));
+  content.querySelectorAll('[data-delete-sub]').forEach(b => b.addEventListener('click', async () => {
+    state.subscriptions = state.subscriptions.filter(s => s.id !== b.dataset.deleteSub);
+    await saveState(false);
+    showToast('Removed', 'info');
+    renderAll();
+  }));
+}
+
+function openSubscriptionModal(editId) {
+  const editing = editId ? state.subscriptions.find(s => s.id === editId) : null;
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay" id="subModalOverlay">
+      <div class="modal-box" style="max-width:420px;">
+        <div class="modal-head">
+          <div class="modal-title">${editing ? 'Edit subscription' : 'Add a subscription'}</div>
+          <button class="close-x" id="subModalClose">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="field-row">
+            <div class="field-label">Service</div>
+            <input class="field-input" id="s_service" placeholder="e.g. Netflix, Gym membership" value="${editing ? escapeHtml(editing.service) : ''}">
+          </div>
+          <div class="form-grid-2 field-row">
+            <div>
+              <div class="field-label">Amount (SGD)</div>
+              <input class="field-input" id="s_amount" type="number" step="0.01" value="${editing ? editing.amount : ''}">
+            </div>
+            <div>
+              <div class="field-label">Billing frequency</div>
+              <select class="field-input" id="s_frequency">
+                ${['Monthly','Annual','Quarterly','Weekly'].map(f => `<option value="${f}" ${editing && editing.frequency===f ? 'selected':''}>${f}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Next charge date (optional)</div>
+            <input class="field-input" id="s_nextdate" type="date" value="${editing ? (editing.nextChargeDate || '') : ''}">
+          </div>
+        </div>
+        <div class="modal-foot">
+          ${editing ? '<button class="btn btn-ghost" id="subModalDelete" style="color:var(--signal-red); margin-right:auto;">Delete</button>' : ''}
+          <button class="btn btn-ghost" id="subModalCancel">Cancel</button>
+          <button class="btn btn-primary" id="subModalSave">${editing ? 'Save changes' : 'Add subscription'}</button>
+        </div>
+      </div>
+    </div>
+  `;
+  const close = () => { root.innerHTML = ''; };
+  document.getElementById('subModalClose').addEventListener('click', close);
+  document.getElementById('subModalCancel').addEventListener('click', close);
+  document.getElementById('subModalOverlay').addEventListener('click', (e) => { if (e.target.id === 'subModalOverlay') close(); });
+  if (editing) {
+    document.getElementById('subModalDelete').addEventListener('click', async () => {
+      state.subscriptions = state.subscriptions.filter(s => s.id !== editing.id);
+      await saveState(false); close(); showToast('Removed', 'info'); renderAll();
+    });
+  }
+  document.getElementById('subModalSave').addEventListener('click', async () => {
+    const service = document.getElementById('s_service').value.trim();
+    const amount = parseFloat(document.getElementById('s_amount').value);
+    const frequency = document.getElementById('s_frequency').value;
+    const nextChargeDate = document.getElementById('s_nextdate').value || null;
+    if (!service || isNaN(amount) || amount <= 0) { showToast('Fill in a service name and amount', 'error'); return; }
+    if (editing) {
+      Object.assign(editing, { service, amount, frequency, nextChargeDate });
+    } else {
+      state.subscriptions.push({ id: genId('sub'), service, amount, frequency, nextChargeDate, category: null, notes: 'Added manually' });
+    }
+    await saveState(false);
+    close();
+    showToast(editing ? 'Updated' : 'Added', 'success');
+    renderAll();
+  });
+}
+
+/* ============================================================
+   TAB: CREDIT BUREAU
+   ============================================================ */
+const RISK_GRADES = ['HH','GG','FF','EE','DD','CC','BB','AA'];
+const RISK_GRADE_COLORS = { HH:'#FF5D5D', GG:'#F5A623', FF:'#F5A623', EE:'#E8D44D', DD:'#8FCB6E', CC:'#3DDC84', BB:'#5B8DEF', AA:'#4FD1E8' };
+
+function renderCreditBureauTab(content) {
+  const cb = state.creditBureau;
+  if (!cb) {
+    content.innerHTML = `
+      <div class="empty-state" style="padding:60px 20px;">
+        <div class="empty-state-icon">🛡️</div>
+        <div class="empty-state-text" style="font-size:14px;">No credit bureau report on file yet. Upload a CBS Consumer Credit Report through Upload Statement to see your score, credit history, and a completeness check across all bureau-reporting banks.</div>
+      </div>
+    `;
+    return;
+  }
+
+  const scorePct = Math.round(((cb.score - 1000) / (2000 - 1000)) * 100);
+  const utilisation = cb.unsecuredBalance / cb.unsecuredLimit;
+  const trendMax = Math.max(...cb.trend.map(t => t.balance));
+  const firstBal = cb.trend[0].balance, lastBal = cb.trend[cb.trend.length - 1].balance;
+  const trendChange = lastBal - firstBal;
+  const trendChangePct = trendChange / firstBal;
+
+  content.innerHTML = `
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-header">
+        <div class="panel-title">Bureau score</div>
+        <div class="page-meta">CBS report pulled ${fmtDate(cb.reportDate)}</div>
+      </div>
+      <div class="panel-body">
+        <div class="score-badge-wrap">
+          <div class="score-circle" style="--score-pct:${scorePct};">
+            <div class="score-circle-inner">
+              <div class="score-circle-value">${cb.score}</div>
+              <div class="score-circle-label">/ 2000</div>
+            </div>
+          </div>
+          <div style="flex:1; min-width:220px;">
+            <div class="risk-grade-scale">
+              ${RISK_GRADES.map(g => `<div class="risk-grade-seg ${g===cb.riskGrade?'active':''}" style="background:${RISK_GRADE_COLORS[g]}22; color:${RISK_GRADE_COLORS[g]};">${g}</div>`).join('')}
+            </div>
+            <div style="font-size:12px; color:var(--ink-muted);">Risk grade <strong style="color:var(--ink-primary);">${cb.riskGrade}</strong> (best band) · Probability of default <strong style="color:var(--ink-primary); font-family:var(--font-mono);">${(cb.probabilityOfDefault*100).toFixed(2)}%</strong> over 12 months</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:14px;">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Credit summary</div></div>
+        <div class="panel-body">
+          <div class="asset-summary-row"><span>Accounts on file</span><span style="font-family:var(--font-mono); font-weight:600;">${cb.accountsOnFile}</span></div>
+          <div class="asset-summary-row"><span>Previous enquiries</span><span style="font-family:var(--font-mono); font-weight:600;">${cb.previousEnquiries}</span></div>
+          <div class="asset-summary-row"><span>Default records</span><span style="font-family:var(--font-mono); font-weight:600; color:var(--signal-green);">${cb.defaults}</span></div>
+          <div class="asset-summary-row"><span>Bankruptcy proceedings</span><span style="font-family:var(--font-mono); font-weight:600; color:var(--signal-green);">${cb.bankruptcies}</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Unsecured utilisation</div></div>
+        <div class="panel-body">
+          <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:7px;">
+            <span>${fmtMoney(cb.unsecuredBalance)} used</span>
+            <span style="color:var(--ink-faint);">of ${fmtMoney(cb.unsecuredLimit)} limit</span>
+          </div>
+          <div style="height:9px; background:var(--bg-panel-raised); border-radius:5px; overflow:hidden;">
+            <div style="height:100%; width:${Math.min(100,utilisation*100)}%; background:linear-gradient(90deg, var(--signal-amber), var(--signal-red));"></div>
+          </div>
+          <div style="font-size:11px; color:var(--ink-faint); margin-top:8px;">${(utilisation*100).toFixed(1)}% utilisation — the main driver behind the "Credit Exposure" risk factor below</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-header">
+        <div class="panel-title">6-month outstanding balance trend</div>
+        <div class="page-meta" style="color:${trendChange<0?'var(--signal-green)':'var(--signal-red)'};">${trendChange<0?'−':'+'}${fmtMoney(Math.abs(trendChange))} (${(trendChangePct*100).toFixed(1)}%)</div>
+      </div>
+      <div class="panel-body">
+        ${cb.trend.map(t => `
+          <div class="trend-bar-row">
+            <span class="trend-bar-month">${t.month}</span>
+            <div class="trend-bar-track"><div class="trend-bar-fill" style="width:${(t.balance/trendMax*100)}%;"></div></div>
+            <span class="trend-bar-value">${fmtMoneyCompact(t.balance)}</span>
+          </div>
+        `).join('')}
+        <div style="font-size:11px; color:var(--ink-faint); margin-top:6px;">Bureau-reported total across all banks combined — a longitudinal view no single statement can show, since each statement is only a point-in-time snapshot.</div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-header"><div class="panel-title">Accounts on bureau file</div></div>
+      <div class="panel-body" style="padding-top:6px;">
+        <table class="cards-table">
+          <thead><tr><th>Product</th><th>Bank</th><th>Opened</th><th>12-month history</th><th>Tracked here?</th></tr></thead>
+          <tbody>
+            ${cb.accounts.map(a => `
+              <tr>
+                <td>${escapeHtml(a.productType)}</td>
+                <td style="font-weight:500;">${escapeHtml(a.bank)}</td>
+                <td class="card-number-mono">${fmtDate(a.dateOpened)}</td>
+                <td style="font-size:11.5px; color:var(--ink-muted);">${escapeHtml(a.history)}</td>
+                <td><span class="tracked-pill ${a.tracked}">${a.tracked === 'yes' ? 'Yes' : 'Unclear'}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title" style="color:var(--signal-amber);">⚑ Open questions to confirm</div></div>
+      <div class="panel-body">
+        ${cb.flags.map((f, i) => `<div class="flag-box"><span class="flag-box-number">${i+1}.</span>${escapeHtml(f)}</div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+</script>
+<script>
+/* ============================================================
+   TAB: ASSETS
+   ============================================================ */
+function categoryClass(cat) {
+  switch (cat) {
+    case 'Savings': return 'cat-savings';
+    case 'CPF': return 'cat-cpf';
+    case 'Cash': return 'cat-cash';
+    case 'Investment': return 'cat-investment';
+    case 'Salary': return 'cat-salary';
+    default: return 'cat-savings';
+  }
+}
+
+function isStale(asOfDate) {
+  if (!asOfDate) return false;
+  const days = Math.round((new Date() - new Date(asOfDate + 'T00:00:00')) / 86400000);
+  return days > 75;
+}
+
+function renderAssetsTab(content) {
+  const t = calcTotals();
+  const catEntries = Object.entries(t.assetsByCategory);
+  const heldAssets = state.assets.filter(a => a.category !== 'Salary');
+
+  let html = '';
+
+  // ---- Held assets (Savings / CPF / Cash / Investment) ----
+  if (heldAssets.length === 0) {
+    html += `
+      <div class="panel" style="margin-bottom:14px;">
+        <div class="empty-state" style="padding:50px 20px;">
+          <div class="empty-state-icon">🪙</div>
+          <div class="empty-state-text" style="font-size:14px; margin-bottom:18px; max-width:380px; margin-left:auto; margin-right:auto;">
+            Nothing tracked here yet — none of your uploads so far have been savings or CPF statements. Add one to start building a real net worth picture.
+          </div>
+          <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+            <button class="btn btn-primary" id="goUploadAsset">Upload a statement</button>
+            <button class="btn" id="openAddAssetModal">Add manually</button>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    html += `
+      <div class="panel" style="margin-bottom:14px;">
+        <div class="panel-header">
+          <div class="panel-title">By category</div>
+          <button class="btn btn-sm btn-primary" id="openAddAssetModal2">+ Add manually</button>
+        </div>
+        <div class="panel-body">
+          ${catEntries.map(([cat, val]) => `
+            <div class="asset-summary-row">
+              <span class="asset-category-badge ${categoryClass(cat)}">${escapeHtml(cat)}</span>
+              <span style="font-family:var(--font-mono); font-weight:600;">${fmtMoney(val)}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="card-grid" style="margin-bottom:14px;">
+        ${heldAssets.map(a => `
+          <div class="asset-card">
+            <span class="asset-category-badge ${categoryClass(a.category)}">${escapeHtml(a.category)}</span>
+            <div class="asset-institution">${escapeHtml(a.institution)}</div>
+            <div class="asset-label">${escapeHtml(a.accountLabel)}</div>
+            <div class="asset-balance">${fmtMoney(a.balance)}</div>
+            <div class="asset-asof ${isStale(a.asOfDate) ? 'stale' : ''}">
+              <span>${a.asOfDate ? 'As of ' + fmtDate(a.asOfDate) : 'No date on file'}${isStale(a.asOfDate) ? ' · refresh?' : ''}</span>
+            </div>
+            <div class="asset-row-actions">
+              <button class="btn btn-sm btn-ghost" data-edit-asset="${a.id}">Edit</button>
+              <button class="btn btn-sm btn-ghost" data-delete-asset="${a.id}" style="color:var(--signal-red);">Remove</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // ---- Income / Salary (kept separate -- a flow, not a held balance) ----
+  if (t.salaryEntries.length === 0) {
+    html += `
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Income</div>
+          <button class="btn btn-sm btn-primary" id="openAddSalaryModal">+ Log salary</button>
+        </div>
+        <div class="empty-state" style="padding:30px 20px;">
+          <div class="empty-state-text" style="font-size:12.5px;">No salary logged yet. Kept separate from the balances above since income is a monthly flow, not money you're holding.</div>
+        </div>
+      </div>
+    `;
+  } else {
+    const dispColor = t.disposable === null ? 'var(--ink-primary)' : (t.disposable < 0 ? 'var(--signal-red)' : 'var(--signal-green)');
+    html += `
+      <div class="panel" style="margin-bottom:14px;">
+        <div class="panel-header">
+          <div class="panel-title">Income vs. debt commitment</div>
+          <button class="btn btn-sm btn-primary" id="openAddSalaryModal">+ Log salary</button>
+        </div>
+        <div class="panel-body">
+          <div class="income-compare-row">
+            <span>Gross salary (${fmtDate(t.latestSalary.asOfDate)})</span>
+            <span class="income-compare-value">${t.latestSalary.cpfContribution != null ? fmtMoney(t.latestSalary.balance + t.latestSalary.cpfContribution) : '—'}</span>
+          </div>
+          <div class="income-compare-row">
+            <span>Net pay (after 20% employee CPF)</span>
+            <span class="income-compare-value">${fmtMoney(t.latestSalary.balance)}</span>
+          </div>
+          ${t.latestSalary.cpfOA != null ? `
+          <div style="background:var(--bg-panel-raised); border-radius:var(--radius-md); padding:12px 14px; margin:4px 0 10px; border:1px solid var(--border-hairline);">
+            <div style="font-size:11px; color:var(--ink-faint); margin-bottom:9px; text-transform:uppercase; letter-spacing:0.05em; font-weight:600;">CPF distribution (37% of gross, capped at $8,000 OW ceiling)</div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+              <div>
+                <div style="font-size:10px; color:var(--ink-faint); margin-bottom:3px;">OA (23%)</div>
+                <div style="font-family:var(--font-mono); font-size:14px; font-weight:600; color:var(--asset-gold);">${fmtMoney(t.latestSalary.cpfOA)}</div>
+                <div style="font-size:10px; color:var(--ink-faint); margin-top:2px;">housing, investments</div>
+              </div>
+              <div>
+                <div style="font-size:10px; color:var(--ink-faint); margin-bottom:3px;">SA (6%)</div>
+                <div style="font-family:var(--font-mono); font-size:14px; font-weight:600; color:var(--accent);">${fmtMoney(t.latestSalary.cpfSA)}</div>
+                <div style="font-size:10px; color:var(--ink-faint); margin-top:2px;">retirement</div>
+              </div>
+              <div>
+                <div style="font-size:10px; color:var(--ink-faint); margin-bottom:3px;">MA (8%)</div>
+                <div style="font-family:var(--font-mono); font-size:14px; font-weight:600; color:var(--signal-green);">${fmtMoney(t.latestSalary.cpfMA)}</div>
+                <div style="font-size:10px; color:var(--ink-faint); margin-top:2px;">healthcare</div>
+              </div>
+            </div>
+            <div style="border-top:1px solid var(--border-hairline); margin-top:10px; padding-top:8px; display:flex; justify-content:space-between; font-size:11.5px;">
+              <span style="color:var(--ink-faint);">Your share (20%) <span style="font-family:var(--font-mono); color:var(--ink-primary);">${fmtMoney(t.latestSalary.cpfContribution)}</span></span>
+              <span style="color:var(--ink-faint);">Employer's share (17%) <span style="font-family:var(--font-mono); color:var(--ink-primary);">${fmtMoney(t.latestSalary.cpfEmployer)}</span></span>
+            </div>
+          </div>` : t.latestSalary.cpfContribution != null ? `
+          <div class="income-compare-row">
+            <span>CPF contribution (20%)</span>
+            <span class="income-compare-value" style="color:var(--asset-gold);">${fmtMoney(t.latestSalary.cpfContribution)}</span>
+          </div>` : ''}
+          <div class="income-compare-row">
+            <span>Monthly instalment commitment</span>
+            <span class="income-compare-value">${fmtMoney(t.monthlyCommitment)}</span>
+          </div>
+          <div class="income-compare-row">
+            <span>Disposable after debt commitment (estimate)</span>
+            <span class="income-compare-value" style="color:${dispColor};">${t.disposable < 0 ? '−' : ''}${fmtMoney(Math.abs(t.disposable))}</span>
+          </div>
+        </div>
+        <div style="padding:0 20px 14px; font-size:11px; color:var(--ink-faint);">Disposable is based on Net Pay (income minus loan instalments only) — it doesn't account for rent, bills, or daily spending. CPF is tracked alongside the entry, not counted in Total Assets, to avoid double-counting if you separately log a real CPF balance.</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Salary log</div></div>
+        <div class="panel-body">
+          ${t.salaryEntries.map(a => `
+            <div class="asset-summary-row">
+              <div>
+                <div style="font-weight:500;">${escapeHtml(a.accountLabel)}</div>
+                <div style="font-size:11px; color:var(--ink-faint); margin-top:2px;">${a.asOfDate ? fmtDate(a.asOfDate) : 'No date on file'}</div>
+                ${a.cpfOA != null ? `<div style="font-size:11px; margin-top:3px;">
+                  <span style="color:var(--asset-gold);">OA ${fmtMoney(a.cpfOA)}</span>
+                  &nbsp;·&nbsp;<span style="color:var(--accent);">SA ${fmtMoney(a.cpfSA)}</span>
+                  &nbsp;·&nbsp;<span style="color:var(--signal-green);">MA ${fmtMoney(a.cpfMA)}</span>
+                </div>` : a.cpfContribution != null ? `<div style="font-size:11px; color:var(--asset-gold); margin-top:3px;">CPF ${fmtMoney(a.cpfContribution)}</div>` : ''}
+              </div>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-family:var(--font-mono); font-weight:600;">${fmtMoney(a.balance)}</span>
+                <button class="btn btn-sm btn-ghost" data-edit-asset="${a.id}">Edit</button>
+                <button class="btn btn-sm btn-ghost" data-delete-asset="${a.id}" style="color:var(--signal-red);">Remove</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  content.innerHTML = html;
+
+  const goUpload = document.getElementById('goUploadAsset');
+  if (goUpload) goUpload.addEventListener('click', () => switchTab('upload'));
+  ['openAddAssetModal', 'openAddAssetModal2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', () => openManualAssetModal());
+  });
+  const addSalaryBtn = document.getElementById('openAddSalaryModal');
+  if (addSalaryBtn) addSalaryBtn.addEventListener('click', () => openManualAssetModal(null, 'Salary'));
+
+  content.querySelectorAll('[data-edit-asset]').forEach(b => b.addEventListener('click', () => openManualAssetModal(b.dataset.editAsset)));
+  content.querySelectorAll('[data-delete-asset]').forEach(b => b.addEventListener('click', async () => {
+    state.assets = state.assets.filter(a => a.id !== b.dataset.deleteAsset);
+    await saveState(false);
+    showToast('Removed', 'info');
+    renderAll();
+  }));
+}
+
+function openManualAssetModal(editId, presetCategory) {
+  const editing = editId ? state.assets.find(a => a.id === editId) : null;
+  const initialCategory = editing ? editing.category : (presetCategory || 'Savings');
+  const isSalary = initialCategory === 'Salary';
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay" id="assetModalOverlay">
+      <div class="modal-box" style="max-width:440px;">
+        <div class="modal-head">
+          <div class="modal-title">${editing ? 'Edit ' + (isSalary ? 'salary entry' : 'asset') : (isSalary ? 'Log salary' : 'Add an asset')}</div>
+          <button class="close-x" id="assetModalClose">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="field-row">
+            <div class="field-label">Category</div>
+            <select class="field-input" id="a_category">
+              ${['Savings','CPF','Cash','Investment','Salary'].map(c => `<option value="${c}" ${initialCategory===c ? 'selected':''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-grid-2 field-row">
+            <div>
+              <div class="field-label">${isSalary ? 'Employer' : 'Institution'}</div>
+              <input class="field-input" id="a_institution" placeholder="${isSalary ? 'e.g. Singtel' : 'e.g. DBS, CPF Board'}" value="${editing ? escapeHtml(editing.institution) : ''}">
+            </div>
+            <div>
+              <div class="field-label">${isSalary ? 'Label' : 'Account label'}</div>
+              <input class="field-input" id="a_label" placeholder="${isSalary ? 'e.g. June 2026 salary' : 'e.g. Ordinary Account'}" value="${editing ? escapeHtml(editing.accountLabel) : ''}">
+            </div>
+          </div>
+          <div id="salaryGrossRow" style="display:${isSalary ? 'block' : 'none'};">
+            <div class="field-row">
+              <div class="field-label">Gross salary (SGD) — optional, calculates CPF automatically</div>
+              <input class="field-input" id="a_gross" type="number" step="0.01" placeholder="e.g. 5200" value="${editing && editing.cpfContribution != null ? (editing.balance + editing.cpfContribution).toFixed(2) : ''}">
+            </div>
+            <div id="cpfHint" style="font-size:11.5px; color:var(--asset-gold); margin:-8px 0 14px; min-height:16px;">${editing && editing.cpfContribution != null ? 'CPF (20%): ' + fmtMoney(editing.cpfContribution) : ''}</div>
+          </div>
+          <div class="form-grid-2 field-row">
+            <div>
+              <div class="field-label">${isSalary ? 'Net pay (SGD)' : 'Balance (SGD)'}</div>
+              <input class="field-input" id="a_balance" type="number" step="0.01" value="${editing ? editing.balance : ''}">
+            </div>
+            <div>
+              <div class="field-label">${isSalary ? 'Pay date' : 'As of date'}</div>
+              <input class="field-input" id="a_asof" type="date" value="${editing ? (editing.asOfDate || '') : new Date().toISOString().slice(0,10)}">
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          ${editing ? '<button class="btn btn-ghost" id="assetModalDelete" style="color:var(--signal-red); margin-right:auto;">Delete</button>' : ''}
+          <button class="btn btn-ghost" id="assetModalCancel">Cancel</button>
+          <button class="btn btn-primary" id="assetModalSave">${editing ? 'Save changes' : 'Add asset'}</button>
+        </div>
+      </div>
+    </div>
+  `;
+  const close = () => { root.innerHTML = ''; };
+  document.getElementById('assetModalClose').addEventListener('click', close);
+  document.getElementById('assetModalCancel').addEventListener('click', close);
+  document.getElementById('assetModalOverlay').addEventListener('click', (e) => { if (e.target.id === 'assetModalOverlay') close(); });
+
+  // ---- CPF allocation rates for age 35 and below (2026, sourced from CPF Board) ----
+  // These are % of GROSS WAGE (employer + employee combined = 37% total)
+  const CPF_RATES = { employee: 0.20, employer: 0.17, OA: 0.23, SA: 0.06, MA: 0.08 };
+
+  // Show/hide the gross-salary helper when the category is switched in the dropdown
+  document.getElementById('a_category').addEventListener('change', (e) => {
+    document.getElementById('salaryGrossRow').style.display = (e.target.value === 'Salary') ? 'block' : 'none';
+  });
+
+  // Live CPF calc: gross -> OA/SA/MA breakdown + net pay auto-filled
+  const grossInput = document.getElementById('a_gross');
+  if (grossInput) {
+    grossInput.addEventListener('input', (e) => {
+      const gross = parseFloat(e.target.value);
+      const hint = document.getElementById('cpfHint');
+      if (isNaN(gross) || gross <= 0) { hint.innerHTML = ''; return; }
+      const cappedGross = Math.min(gross, 8000); // OW ceiling from Jan 2026
+      const emp = cappedGross * CPF_RATES.employee;
+      const net = gross - emp; // net take-home (only employee CPF deducted from salary)
+      const oa  = cappedGross * CPF_RATES.OA;
+      const sa  = cappedGross * CPF_RATES.SA;
+      const ma  = cappedGross * CPF_RATES.MA;
+      document.getElementById('a_balance').value = net.toFixed(2);
+      hint.innerHTML =
+        '<span style="color:var(--ink-muted);">Net pay → </span><strong>' + fmtMoney(net) + '</strong> &nbsp;'
+        + '<span style="font-size:10.5px; color:var(--ink-faint);">(employer adds ' + fmtMoney(cappedGross * CPF_RATES.employer) + ' separately)</span>'
+        + '<br>'
+        + '<span style="color:var(--asset-gold);">OA ' + fmtMoney(oa) + '</span>'
+        + ' &nbsp;·&nbsp; <span style="color:var(--accent);">SA ' + fmtMoney(sa) + '</span>'
+        + ' &nbsp;·&nbsp; <span style="color:var(--signal-green);">MA ' + fmtMoney(ma) + '</span>'
+        + (gross > 8000 ? '<br><span style="font-size:10px; color:var(--signal-amber);">CPF capped at $8,000 OW ceiling — amounts above based on $8,000</span>' : '');
+    });
+  }
+
+  if (editing) {
+    document.getElementById('assetModalDelete').addEventListener('click', async () => {
+      state.assets = state.assets.filter(a => a.id !== editing.id);
+      await saveState(false); close(); showToast('Removed', 'info'); renderAll();
+    });
+  }
+  document.getElementById('assetModalSave').addEventListener('click', async () => {
+    const category = document.getElementById('a_category').value;
+    const institution = document.getElementById('a_institution').value.trim();
+    const accountLabel = document.getElementById('a_label').value.trim();
+    const balance = parseFloat(document.getElementById('a_balance').value);
+    const asOfDate = document.getElementById('a_asof').value || null;
+    if (!institution || !accountLabel || isNaN(balance)) { showToast('Fill in institution, label, and balance', 'error'); return; }
+
+    // Store the full CPF breakdown alongside the salary entry.
+    // OA/SA/MA are calculated from gross (capped at $8,000 OW ceiling).
+    // Stored as metadata only — NOT added to Total Assets — to avoid double-counting
+    // against a real CPF balance logged separately from a screenshot.
+    let cpfContribution = null, cpfOA = null, cpfSA = null, cpfMA = null, cpfEmployer = null;
+    if (category === 'Salary') {
+      const grossEl = document.getElementById('a_gross');
+      const gross = grossEl ? parseFloat(grossEl.value) : NaN;
+      if (!isNaN(gross) && gross > 0) {
+        const cappedGross = Math.min(gross, 8000);
+        cpfContribution = cappedGross * CPF_RATES.employee;
+        cpfEmployer    = cappedGross * CPF_RATES.employer;
+        cpfOA          = cappedGross * CPF_RATES.OA;
+        cpfSA          = cappedGross * CPF_RATES.SA;
+        cpfMA          = cappedGross * CPF_RATES.MA;
+      }
+    }
+
+    if (editing) {
+      Object.assign(editing, { institution, accountLabel, category, balance, asOfDate,
+        cpfContribution, cpfOA, cpfSA, cpfMA, cpfEmployer });
+    } else {
+      state.assets.push({ id: genId('asset'), category, institution, accountLabel, balance, asOfDate,
+        cpfContribution, cpfOA, cpfSA, cpfMA, cpfEmployer, notes: 'Added manually' });
+    }
+    await saveState(false);
+    close();
+    showToast(editing ? 'Updated' : 'Added', 'success');
+    renderAll();
+  });
+}
+
+/* ============================================================
+   TAB: THIS MONTH DUE
+   ============================================================ */
+function renderDueTab(content) {
+  const rows = [...state.accounts].sort((a, b) => {
+    if (!a.dueDate) return 1;
+    if (!b.dueDate) return -1;
+    return new Date(a.dueDate) - new Date(b.dueDate);
+  });
+
+  content.innerHTML = `
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Payment status — all accounts</div>
+        <div class="page-meta">sorted by due date</div>
+      </div>
+      <div class="legend-row">
+        <div class="legend-item"><span class="legend-dot" style="background:var(--signal-red);"></span>Overdue / today</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--signal-amber);"></span>1–3 days</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#E8D44D;"></span>4–7 days</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--signal-green);"></span>8+ days</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--ink-faint);"></span>No due date on file</div>
+      </div>
+      <div class="panel-body">
+        ${rows.map(a => {
+          const days = daysUntil(a.dueDate);
+          const led = a.status === 'Paid' ? 'led-green' : dueLedClass(days);
+          let countdownText = '—';
+          if (a.dueDate) {
+            countdownText = days <= 0 ? (days === 0 ? 'Today' : Math.abs(days)+'d overdue') : days + 'd';
+          }
+          return `
+          <div class="due-row">
+            <span class="due-row-led ${led}"></span>
+            <div class="due-row-bank">
+              <div class="due-row-bank-name">${escapeHtml(a.bank)}</div>
+              <div class="due-row-bank-date">${a.dueDate ? 'Due ' + fmtDate(a.dueDate) : 'No due date on this statement'}</div>
+            </div>
+            <div class="due-row-countdown">${countdownText}</div>
+            <div class="due-row-amounts">
+              <div class="due-row-balance">${fmtMoney(a.balance)}</div>
+              <div class="due-row-min">min ${fmtMoney(a.minPayment)}</div>
+            </div>
+            <select class="status-select" data-account-id="${a.id}">
+              ${['Paid','Pending','Overdue','Unknown','Not yet billed'].map(s => `<option value="${s}" ${a.status===s?'selected':''}>${s}</option>`).join('')}
+            </select>
+          </div>
+        `}).join('')}
+      </div>
+    </div>
+  `;
+
+  content.querySelectorAll('.status-select').forEach(sel => {
+    sel.addEventListener('change', async (e) => {
+      const acc = state.accounts.find(a => a.id === e.target.dataset.accountId);
+      if (acc) {
+        acc.status = e.target.value;
+        await saveState(false);
+        showToast(acc.bank.split('(')[0].trim() + ' marked ' + acc.status, 'success');
+        renderAll();
+      }
+    });
+  });
+}
+</script>
+<script>
+/* ============================================================
+   TAB: UPLOAD STATEMENT  (the embedded-AI feature)
+   ============================================================ */
+function renderUploadTab(content) {
+  const savedKey = localStorage.getItem(API_KEY_STORAGE);
+  const maskedKey = savedKey ? savedKey.slice(0, 10) + '••••••••' + savedKey.slice(-4) : null;
+
+  content.innerHTML = `
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-header">
+        <div class="panel-title">Backup & restore</div>
+        <div class="page-meta">works on any screen size, incl. mobile</div>
+      </div>
+      <div class="panel-body" style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-sm" id="uploadTabBackupBtn">Download backup (JSON)</button>
+        <button class="btn btn-sm" id="uploadTabImportBtn">Import backup (JSON)</button>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-header">
+        <div class="panel-title">Anthropic API key</div>
+        <div class="page-meta">required for statement reading — stored only in this browser</div>
+      </div>
+      <div class="panel-body">
+        ${savedKey ? `
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+            <div style="font-family:var(--font-mono); font-size:12.5px; color:var(--ink-muted);">${maskedKey}</div>
+            <button class="btn btn-sm btn-ghost" id="changeApiKeyBtn">Change key</button>
+          </div>
+        ` : `
+          <div style="margin-bottom:12px; font-size:12.5px; color:var(--ink-muted); line-height:1.6;">
+            Opening this file directly (outside Claude.ai) means it can't read statements without your own key — Claude.ai's built-in authentication only applies when viewing this inside Claude.ai itself. Get one at <strong style="color:var(--ink-primary);">console.anthropic.com</strong> (this needs its own credit balance, separate from any Claude.ai subscription).
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <input class="field-input" id="apiKeyInput" type="password" placeholder="sk-ant-..." style="flex:1; min-width:220px;">
+            <button class="btn btn-primary btn-sm" id="saveApiKeyBtn">Save key</button>
+          </div>
+        `}
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="panel-body">
+        <div class="upload-zone" id="uploadZone" tabindex="0" role="button" aria-label="Upload a bank statement">
+          <div class="upload-zone-icon">📄</div>
+          <div class="upload-zone-title" id="uploadZoneTitle">Drop a statement here, or click to choose a file</div>
+          <div class="upload-zone-sub">PDF, PNG or JPG · Claude reads it and proposes the update — nothing is saved until you confirm</div>
+          <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" style="display:none;">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Upload history</div>
+      </div>
+      <div class="panel-body">
+        ${state.uploadHistory.length ? state.uploadHistory.slice().reverse().map(h => `
+          <div style="display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border-hairline); font-size:12.5px;">
+            <span>${escapeHtml(h.bank)} <span style="color:var(--ink-faint);">— ${h.action}</span></span>
+            <span style="font-family:var(--font-mono); color:var(--ink-faint);">${new Date(h.at).toLocaleDateString('en-SG',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+          </div>
+        `).join('') : '<div class="empty-state"><div class="empty-state-icon">🗂️</div><div class="empty-state-text">No uploads yet — try one above.</div></div>'}
+      </div>
+    </div>
+  `;
+
+  const zone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('fileInput');
+  zone.addEventListener('click', () => fileInput.click());
+  zone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault(); zone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+  document.getElementById('uploadTabBackupBtn').addEventListener('click', downloadBackupFile);
+  document.getElementById('uploadTabImportBtn').addEventListener('click', triggerImportBackup);
+
+  const saveKeyBtn = document.getElementById('saveApiKeyBtn');
+  if (saveKeyBtn) {
+    saveKeyBtn.addEventListener('click', () => {
+      const val = document.getElementById('apiKeyInput').value.trim();
+      if (!val) { showToast('Enter a key first', 'error'); return; }
+      localStorage.setItem(API_KEY_STORAGE, val);
+      showToast('API key saved', 'success');
+      renderAll();
+    });
+  }
+  const changeKeyBtn = document.getElementById('changeApiKeyBtn');
+  if (changeKeyBtn) {
+    changeKeyBtn.addEventListener('click', () => {
+      localStorage.removeItem(API_KEY_STORAGE);
+      renderAll();
+    });
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result.split(',')[1]);
+    r.onerror = () => reject(new Error('Could not read the file'));
+    r.readAsDataURL(file);
+  });
+}
+
+const EXTRACTION_PROMPT = `You are extracting structured financial data from a Singapore financial document — this could be a credit card statement, loan statement, loan approval letter, savings/bank account statement, or a screenshot of a CPF account balance page. Read the attached document carefully and output ONLY a single compact JSON object — no markdown code fences, no preamble, no explanation, no trailing text.
+
+First decide "documentKind":
+- "debt" — for credit card statements, personal loan statements, or loan approval letters (anything showing money owed)
+- "asset" — for savings/current account statements, CPF balance pages or screenshots, cash, investment account statements, or payslips (anything showing money held or earned)
+
+If documentKind is "debt", use this schema:
+{
+ "documentKind": "debt",
+ "bank": "short bank name, one of: DBS / POSB, Citibank, Standard Chartered, OCBC, UOB, CIMB Bank, Trust Bank, HSBC, or another bank name if different",
+ "accountType": "Credit Card" or "Personal Loan" or "Line of Credit",
+ "statementDate": "YYYY-MM-DD or null",
+ "dueDate": "YYYY-MM-DD or null",
+ "creditLimit": number or null,
+ "balance": number or null,
+ "minPayment": number or null,
+ "loans": [
+   {
+     "planDescription": "short label for this instalment plan, e.g. the plan code or merchant name shown",
+     "principal": number or null,
+     "tenureMonths": number or null,
+     "instalmentsPaid": number or null (infer from a plan code like '008/060' meaning 8 of 60 paid, if shown),
+     "monthlyInstalment": number,
+     "outstandingPrincipalOnly": number or null,
+     "outstandingInclInterest": number or null,
+     "appliedRate": decimal or null (5.88% becomes 0.0588),
+     "effectiveRate": decimal or null
+   }
+ ]
+}
+If a debt document has no instalment/loan plan and is just a plain revolving credit card balance, return "loans": [].
+
+If documentKind is "asset", use this schema instead:
+{
+ "documentKind": "asset",
+ "institution": "short name, e.g. DBS / POSB, OCBC, UOB, CPF Board, an employer name, or another institution if different",
+ "assets": [
+   {
+     "category": "Savings" or "CPF" or "Cash" or "Investment" or "Salary",
+     "accountLabel": "short label, e.g. 'POSB Save it', 'Ordinary Account', 'Special Account', 'MediSave Account', 'Retirement Account', or 'June 2026 salary' for a payslip",
+     "balance": number,
+     "asOfDate": "YYYY-MM-DD or null"
+   }
+ ]
+}
+A single CPF screenshot showing multiple sub-accounts (OA/SA/MA/RA) should produce one "assets" entry per sub-account shown, each with category "CPF".
+A payslip should use category "Salary", with "balance" set to the NET pay (take-home amount after deductions, not gross), and "asOfDate" set to the pay date.
+
+Rules for either kind:
+- Leave any field null if it is genuinely not stated on the document. Never guess, estimate, or invent a number.
+- Keep the JSON compact (no extra whitespace/newlines) since output length is limited.`;
+
+async function handleFile(file) {
+  const apiKey = localStorage.getItem(API_KEY_STORAGE);
+  if (!apiKey) {
+    showToast('Enter your Anthropic API key above first', 'error');
+    return;
+  }
+
+  const zone = document.getElementById('uploadZone');
+  const title = document.getElementById('uploadZoneTitle');
+  const originalTitle = title.textContent;
+  title.innerHTML = '<span class="loading-spinner"></span> Reading ' + escapeHtml(file.name) + ' …';
+
+  try {
+    const base64 = await fileToBase64(file);
+    const mediaType = file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
+    const isPdf = mediaType === 'application/pdf';
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: isPdf ? 'document' : 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+            { type: 'text', text: EXTRACTION_PROMPT }
+          ]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text().catch(() => '');
+      throw new Error('API responded with status ' + response.status + (errBody ? ' — ' + errBody.slice(0, 200) : ''));
+    }
+    const data = await response.json();
+    const rawText = (data.content || []).map(b => b.text || '').join('');
+    const cleaned = rawText.replace(/```json|```/g, '').trim();
+    let extracted;
+    try {
+      extracted = JSON.parse(cleaned);
+    } catch (parseErr) {
+      throw new Error('Could not understand the response — try a clearer scan or a different page of the statement.');
+    }
+
+    title.textContent = originalTitle;
+    if (extracted.documentKind === 'asset') {
+      openAssetExtractionModal(extracted, file.name);
+    } else {
+      openExtractionModal(extracted, file.name);
+    }
+  } catch (err) {
+    console.error(err);
+    title.textContent = originalTitle;
+    showToast('Could not read that file: ' + err.message, 'error');
+  }
+}
+</script>
+<script>
+/* ============================================================
+   EXTRACTION PREVIEW MODAL + MERGE LOGIC
+   ============================================================ */
+function normalizeBank(s) {
+  return (s || '').toLowerCase().replace(/[^a-z]/g, '');
+}
+
+function findMatchingAccount(bankName) {
+  const norm = normalizeBank(bankName);
+  return state.accounts.find(a => {
+    const accNorm = normalizeBank(a.bank);
+    return accNorm.includes(norm.slice(0, 5)) || norm.includes(accNorm.slice(0, 5));
+  });
+}
+
+function findMatchingLoan(bankName, planDescription) {
+  const normBank = normalizeBank(bankName);
+  const normPlan = (planDescription || '').toLowerCase().slice(0, 12);
+  return state.loans.find(l => {
+    const lBank = normalizeBank(l.bank);
+    const bankMatches = lBank.includes(normBank.slice(0,5)) || normBank.includes(lBank.slice(0,5));
+    const planMatches = l.planDescription.toLowerCase().includes(normPlan) || normPlan.length > 3 && l.planDescription.toLowerCase().slice(0,12) === normPlan;
+    return bankMatches && planMatches;
+  });
+}
+
+function findMatchingAsset(institution, accountLabel) {
+  const normInst = normalizeBank(institution);
+  const normLabel = (accountLabel || '').toLowerCase().slice(0, 10);
+  return state.assets.find(a => {
+    const aInst = normalizeBank(a.institution);
+    const instMatches = aInst.includes(normInst.slice(0,5)) || normInst.includes(aInst.slice(0,5));
+    const labelMatches = a.accountLabel.toLowerCase().includes(normLabel) || (normLabel.length > 3 && a.accountLabel.toLowerCase().slice(0,10) === normLabel);
+    return instMatches && labelMatches;
+  });
+}
+
+let __pendingAssetExtraction = null;
+
+function openAssetExtractionModal(extracted, filename) {
+  __pendingAssetExtraction = extracted;
+  const root = document.getElementById('modal-root');
+  const rowsHtml = (extracted.assets || []).map((a, idx) => {
+    const matched = findMatchingAsset(extracted.institution, a.accountLabel);
+    return `
+      <div style="border:1px solid var(--border-hairline); border-radius:var(--radius-sm); padding:11px 12px; margin-bottom:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <span style="font-size:12.5px; font-weight:500;">${escapeHtml(a.accountLabel || 'Account ' + (idx+1))}</span>
+          <span class="asset-category-badge ${categoryClass(a.category)}" style="margin:0;">${escapeHtml(a.category || 'Savings')}</span>
+        </div>
+        <div style="font-size:11px; color:var(--ink-faint);">${fmtMoney(a.balance)} · ${matched ? 'will update existing entry' : 'will be added as new'}</div>
+      </div>
+    `;
+  }).join('') || '<div style="font-size:12px; color:var(--ink-faint);">No balances were found on this document.</div>';
+
+  root.innerHTML = `
+    <div class="modal-overlay" id="assetExtractOverlay">
+      <div class="modal-box">
+        <div class="modal-head">
+          <div class="modal-title">Review before saving</div>
+          <button class="close-x" id="assetExtractClose">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="merge-note">Read from <strong>${escapeHtml(filename)}</strong> as an asset document — institution: <strong>${escapeHtml(extracted.institution || 'unknown')}</strong>.</div>
+          <div class="field-label" style="margin-bottom:8px;">Balances found</div>
+          ${rowsHtml}
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" id="assetExtractCancel">Cancel</button>
+          <button class="btn btn-primary" id="assetExtractConfirm" ${(extracted.assets||[]).length===0 ? 'disabled' : ''}>Confirm & save</button>
+        </div>
+      </div>
+    </div>
+  `;
+  const close = () => { root.innerHTML = ''; __pendingAssetExtraction = null; };
+  document.getElementById('assetExtractClose').addEventListener('click', close);
+  document.getElementById('assetExtractCancel').addEventListener('click', close);
+  document.getElementById('assetExtractOverlay').addEventListener('click', (e) => { if (e.target.id === 'assetExtractOverlay') close(); });
+  document.getElementById('assetExtractConfirm').addEventListener('click', async () => {
+    const institution = extracted.institution || 'Unknown institution';
+    (extracted.assets || []).forEach(a => {
+      let asset = findMatchingAsset(institution, a.accountLabel);
+      if (asset) {
+        asset.balance = a.balance;
+        asset.asOfDate = a.asOfDate || asset.asOfDate;
+        state.uploadHistory.push({ bank: institution, action: 'updated asset: ' + (a.accountLabel||''), at: new Date().toISOString() });
+      } else {
+        state.assets.push({
+          id: genId('asset'), category: a.category || 'Savings', institution,
+          accountLabel: a.accountLabel || 'Account', balance: a.balance || 0,
+          asOfDate: a.asOfDate || null, notes: 'Added via statement upload: ' + filename,
+        });
+        state.uploadHistory.push({ bank: institution, action: 'added asset: ' + (a.accountLabel||''), at: new Date().toISOString() });
+      }
+    });
+    await saveState(false);
+    close();
+    showToast(institution + ' assets updated', 'success');
+    switchTab('assets');
+  });
+}
+
+
+let __pendingExtraction = null;
+
+function openExtractionModal(extracted, filename) {
+  __pendingExtraction = extracted;
+  const matchedAccount = findMatchingAccount(extracted.bank);
+  const root = document.getElementById('modal-root');
+
+  const loanRowsHtml = (extracted.loans || []).map((l, idx) => {
+    const matched = findMatchingLoan(extracted.bank, l.planDescription);
+    return `
+      <div style="border:1px solid var(--border-hairline); border-radius:var(--radius-sm); padding:11px 12px; margin-bottom:8px;">
+        <div style="font-size:12.5px; font-weight:500; margin-bottom:4px;">${escapeHtml(l.planDescription || 'Instalment plan ' + (idx+1))}</div>
+        <div style="font-size:11px; color:var(--ink-faint);">Monthly ${fmtMoney(l.monthlyInstalment)} · ${matched ? 'will update existing plan: "' + escapeHtml(matched.planDescription) + '"' : 'will be added as a new plan'}</div>
+      </div>
+    `;
+  }).join('') || '<div style="font-size:12px; color:var(--ink-faint);">No instalment plans found on this document — just the revolving balance above.</div>';
+
+  root.innerHTML = `
+    <div class="modal-overlay" id="modalOverlay">
+      <div class="modal-box">
+        <div class="modal-head">
+          <div class="modal-title">Review before saving</div>
+          <button class="close-x" id="modalClose">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="merge-note">
+            Read from <strong>${escapeHtml(filename)}</strong>. ${matchedAccount ? 'This matches your existing <strong>' + escapeHtml(matchedAccount.bank) + '</strong> account — it will be updated, not duplicated.' : 'No existing account matched this bank — a new one will be added.'}
+          </div>
+
+          <div class="field-row">
+            <div class="field-label">Bank</div>
+            <input class="field-input" id="f_bank" value="${escapeHtml(extracted.bank || '')}">
+          </div>
+          <div class="field-grid-2 field-row">
+            <div>
+              <div class="field-label">Statement date</div>
+              <input class="field-input" id="f_statementDate" type="date" value="${extracted.statementDate || ''}">
+            </div>
+            <div>
+              <div class="field-label">Due date</div>
+              <input class="field-input" id="f_dueDate" type="date" value="${extracted.dueDate || ''}">
+            </div>
+          </div>
+          <div class="field-grid-2 field-row">
+            <div>
+              <div class="field-label">Statement balance (SGD)</div>
+              <input class="field-input" id="f_balance" type="number" step="0.01" value="${extracted.balance ?? ''}">
+            </div>
+            <div>
+              <div class="field-label">Minimum payment (SGD)</div>
+              <input class="field-input" id="f_minPayment" type="number" step="0.01" value="${extracted.minPayment ?? ''}">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-label">Credit limit (SGD) — leave blank if a personal loan</div>
+            <input class="field-input" id="f_creditLimit" type="number" step="1" value="${extracted.creditLimit ?? ''}">
+          </div>
+
+          <div class="field-label" style="margin-top:18px; margin-bottom:8px;">Instalment plans found</div>
+          ${loanRowsHtml}
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" id="modalCancel">Cancel</button>
+          <button class="btn btn-primary" id="modalConfirm">Confirm & save</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('modalClose').addEventListener('click', closeExtractionModal);
+  document.getElementById('modalCancel').addEventListener('click', closeExtractionModal);
+  document.getElementById('modalOverlay').addEventListener('click', (e) => { if (e.target.id === 'modalOverlay') closeExtractionModal(); });
+  document.getElementById('modalConfirm').addEventListener('click', () => confirmExtraction(filename));
+}
+
+function closeExtractionModal() {
+  document.getElementById('modal-root').innerHTML = '';
+  __pendingExtraction = null;
+}
+
+async function confirmExtraction(filename) {
+  const edited = {
+    bank: document.getElementById('f_bank').value.trim(),
+    statementDate: document.getElementById('f_statementDate').value || null,
+    dueDate: document.getElementById('f_dueDate').value || null,
+    balance: parseFloat(document.getElementById('f_balance').value) || null,
+    minPayment: parseFloat(document.getElementById('f_minPayment').value) || null,
+    creditLimit: document.getElementById('f_creditLimit').value !== '' ? parseFloat(document.getElementById('f_creditLimit').value) : null,
+    accountType: __pendingExtraction.accountType || 'Credit Card',
+    loans: __pendingExtraction.loans || [],
+  };
+
+  // ---- merge account ----
+  let account = findMatchingAccount(edited.bank);
+  if (account) {
+    account.statementDate = edited.statementDate;
+    account.dueDate = edited.dueDate;
+    account.balance = edited.balance;
+    account.minPayment = edited.minPayment;
+    if (edited.creditLimit !== null) account.creditLimit = edited.creditLimit;
+    account.status = 'Pending';
+    state.uploadHistory.push({ bank: account.bank, action: 'updated account', at: new Date().toISOString() });
+  } else {
+    account = {
+      id: genId('acc'), bank: edited.bank, accountType: edited.accountType, last4: 'n/a',
+      statementDate: edited.statementDate, dueDate: edited.dueDate, creditLimit: edited.creditLimit,
+      balance: edited.balance, minPayment: edited.minPayment, status: 'Pending',
+    };
+    state.accounts.push(account);
+    state.uploadHistory.push({ bank: account.bank, action: 'added new account', at: new Date().toISOString() });
+  }
+
+  // ---- merge loans ----
+  edited.loans.forEach(l => {
+    let loan = findMatchingLoan(edited.bank, l.planDescription);
+    if (loan) {
+      loan.instalmentsPaid = l.instalmentsPaid ?? loan.instalmentsPaid;
+      loan.monthlyInstalment = l.monthlyInstalment ?? loan.monthlyInstalment;
+      loan.outstandingPrincipalOnly = l.outstandingPrincipalOnly ?? loan.outstandingPrincipalOnly;
+      loan.outstandingInclInterest = l.outstandingInclInterest ?? loan.outstandingInclInterest;
+      loan.principal = l.principal ?? loan.principal;
+      loan.tenureMonths = l.tenureMonths ?? loan.tenureMonths;
+      loan.appliedRate = l.appliedRate ?? loan.appliedRate;
+      loan.effectiveRate = l.effectiveRate ?? loan.effectiveRate;
+      state.uploadHistory.push({ bank: edited.bank, action: 'updated plan: ' + (l.planDescription || ''), at: new Date().toISOString() });
+    } else {
+      state.loans.push({
+        id: genId('loan'), bank: edited.bank, planDescription: l.planDescription || 'Instalment plan',
+        principal: l.principal ?? null, tenureMonths: l.tenureMonths ?? null, instalmentsPaid: l.instalmentsPaid ?? null,
+        monthlyInstalment: l.monthlyInstalment || 0, outstandingPrincipalOnly: l.outstandingPrincipalOnly ?? null,
+        outstandingInclInterest: l.outstandingInclInterest ?? null, appliedRate: l.appliedRate ?? null,
+        effectiveRate: l.effectiveRate ?? null, notes: 'Added via statement upload: ' + filename,
+      });
+      state.uploadHistory.push({ bank: edited.bank, action: 'added new plan: ' + (l.planDescription || ''), at: new Date().toISOString() });
+    }
+  });
+
+  await saveState(false);
+  closeExtractionModal();
+  showToast(edited.bank + ' updated successfully', 'success');
+  switchTab('accounts');
+}
+
+/* ============================================================
+   GLOBAL EVENT WIRING + INIT
+   ============================================================ */
+function downloadBackupFile() {
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `networth_backup_${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Backup downloaded', 'success');
+}
+function triggerImportBackup() {
+  document.getElementById('importBackupInput').click();
+}
+
+document.getElementById('backupBtn').addEventListener('click', downloadBackupFile);
+document.getElementById('importBackupBtn').addEventListener('click', triggerImportBackup);
+
+document.getElementById('importBackupInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let parsed;
+    try {
+      parsed = JSON.parse(reader.result);
+    } catch (err) {
+      showToast('That file is not valid JSON', 'error');
+      return;
+    }
+    // Basic shape validation -- refuse anything that doesn't look like a real backup,
+    // rather than silently loading garbage and corrupting the app's state.
+    if (!Array.isArray(parsed.accounts) || !Array.isArray(parsed.loans)) {
+      showToast('That doesn\'t look like a Net Worth Console backup file', 'error');
+      return;
+    }
+
+    const root = document.getElementById('modal-root');
+    root.innerHTML = `
+      <div class="modal-overlay" id="importConfirmOverlay">
+        <div class="modal-box" style="max-width:420px;">
+          <div class="modal-head">
+            <div class="modal-title">Import this backup?</div>
+            <button class="close-x" id="importConfirmClose">✕</button>
+          </div>
+          <div class="modal-body">
+            <p style="font-size:13px; color:var(--ink-muted); line-height:1.6;">
+              Found ${parsed.accounts.length} account(s) and ${parsed.loans.length} loan(s) in "${escapeHtml(file.name)}".
+              This will replace everything currently in this app with the contents of that file. This can't be undone.
+            </p>
+          </div>
+          <div class="modal-foot">
+            <button class="btn btn-ghost" id="importConfirmCancel">Cancel</button>
+            <button class="btn btn-primary" id="importConfirmGo">Import</button>
+          </div>
+        </div>
+      </div>
+    `;
+    const close = () => { root.innerHTML = ''; document.getElementById('importBackupInput').value = ''; };
+    document.getElementById('importConfirmClose').addEventListener('click', close);
+    document.getElementById('importConfirmCancel').addEventListener('click', close);
+    document.getElementById('importConfirmOverlay').addEventListener('click', (ev) => { if (ev.target.id === 'importConfirmOverlay') close(); });
+    document.getElementById('importConfirmGo').addEventListener('click', async () => {
+      state = parsed;
+      // Backfill any fields added in later versions, same as loadState's normal backfill.
+      if (!state.uploadHistory) state.uploadHistory = [];
+      if (!state.assets) state.assets = [];
+      if (!state.cardInventory) state.cardInventory = [];
+      if (!state.goals) state.goals = [];
+      if (!state.budgetCategories) state.budgetCategories = JSON.parse(JSON.stringify(SEED_DATA.budgetCategories));
+      if (!state.subscriptions) state.subscriptions = [];
+      if (!state.creditBureau) state.creditBureau = null;
+      await saveState(false);
+      close();
+      showToast('Backup imported', 'success');
+      renderAll();
+    });
+  };
+  reader.onerror = () => showToast('Could not read that file', 'error');
+  reader.readAsText(file);
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay" id="confirmOverlay">
+      <div class="modal-box" style="max-width:400px;">
+        <div class="modal-head">
+          <div class="modal-title">Reset all data?</div>
+          <button class="close-x" id="confirmClose">✕</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:13px; color:var(--ink-muted); line-height:1.6;">This clears anything added through Upload Statement and restores the dashboard to your last confirmed statements. This can't be undone.</p>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" id="confirmCancel">Cancel</button>
+          <button class="btn" style="background:var(--signal-red); border-color:var(--signal-red); color:#1a0505;" id="confirmGo">Reset</button>
+        </div>
+      </div>
+    </div>
+  `;
+  const close = () => { root.innerHTML = ''; };
+  document.getElementById('confirmClose').addEventListener('click', close);
+  document.getElementById('confirmCancel').addEventListener('click', close);
+  document.getElementById('confirmOverlay').addEventListener('click', (e) => { if (e.target.id === 'confirmOverlay') close(); });
+  document.getElementById('confirmGo').addEventListener('click', async () => {
+    state = JSON.parse(JSON.stringify(SEED_DATA));
+    await saveState(false);
+    close();
+    showToast('Reset to last known statements', 'info');
+    renderAll();
+  });
+});
+
+function showAuthError(msg) {
+  document.getElementById('authError').textContent = msg || '';
+}
+
+async function enterApp() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('signOutBtn').style.display = currentUser ? 'block' : 'none';
+  await loadState();
+}
+
+async function initAuth() {
+  const configured = SUPABASE_URL.startsWith('http') && supabaseClient;
+
+  if (!configured) {
+    // Supabase not set up yet -- skip the login screen entirely, behave exactly
+    // like the plain local-storage-only version until it's configured.
+    await enterApp();
+    return;
+  }
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session && session.user) {
+    currentUser = session.user;
+    await enterApp();
+    return;
+  }
+  // No session -- leave the auth screen showing, wire up its buttons.
+  document.getElementById('authSignInBtn').addEventListener('click', async () => {
+    showAuthError('');
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    if (!email || !password) { showAuthError('Enter both email and password.'); return; }
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) { showAuthError(error.message); return; }
+    currentUser = data.user;
+    await enterApp();
+  });
+  document.getElementById('authSignUpBtn').addEventListener('click', async () => {
+    showAuthError('');
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    if (!email || !password) { showAuthError('Enter both email and password.'); return; }
+    if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+    if (error) { showAuthError(error.message); return; }
+    if (data.user && !data.session) {
+      showAuthError('Check your email to confirm your account, then sign in.');
+      return;
+    }
+    currentUser = data.user;
+    await enterApp();
+  });
+}
+
+document.getElementById('signOutBtn').addEventListener('click', async () => {
+  if (supabaseClient) await supabaseClient.auth.signOut();
+  currentUser = null;
+  location.reload();
+});
+
+initAuth();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch((e) => console.error('SW registration failed', e));
+  });
+}
+</script>
+</body>
+</html>

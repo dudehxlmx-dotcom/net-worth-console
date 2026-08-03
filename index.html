@@ -823,8 +823,8 @@ const API_KEY_STORAGE = 'debt_console_api_key_v1';
 // SUPABASE_ANON_KEY is the "anon / public" key (safe to embed in client code --
 // Row Level Security in the database is what actually protects your data, not
 // keeping this key secret).
-const SUPABASE_URL = https://wvhlpwjyyqjismnlxcbh.supabase.co;
-const SUPABASE_ANON_KEY = sb_publishable_bem6THZeHff9VNGRh7RS8A_wujeZaW9;
+const SUPABASE_URL = 'https://wvhlpwjyyqjismnlxcbh.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_bem6THZeHff9VNGRh7RS8A_wujeZaW9';
 
 const supabaseClient = (SUPABASE_URL.startsWith('http'))
   ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)

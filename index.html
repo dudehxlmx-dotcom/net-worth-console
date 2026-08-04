@@ -2500,6 +2500,10 @@ If documentKind is "debt", use this schema:
 }
 If a debt document has no instalment/loan plan and is just a plain revolving credit card balance, return "loans": [].
 
+IMPORTANT -- "balance" vs. loan "outstanding" figures (these are frequently NOT the same number, and mixing them up is a real, previously-seen mistake):
+"balance" at the top level must be the amount due THIS SPECIFIC BILLING CYCLE -- usually labelled "Total Amount Due", "Minimum Payment Due", "Current Balance", or similar, and it should be close in size to "minPayment" (often identical for a Line of Credit / instalment-only product).
+It must NOT be a loan's total remaining balance across its full tenure, and must NOT be a "Total Account Balance" that sums multiple sub-balances together.
+Example of the distinction: an HSBC Line of Credit statement may show THREE different figures -- "Total Amount Due: $1,077.00" (this cycle only -- this is "balance"), "Outstanding Balance: $53,907.04" inside an Instalment Summary table (the loan's full remaining total -- this goes in "loans[].outstandingInclInterest", NEVER in top-level "balance"), and "Total Account Balance: $54,984.04" (the sum of the other two -- use for neither field). If a statement shows more than one figure like this, use the smallest one that's explicitly this cycle's due amount for "balance", and put any larger running-total figure only inside the matching "loans[]" entry.
 If documentKind is "asset", use this schema instead:
 {
  "documentKind": "asset",
